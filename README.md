@@ -1,7 +1,3 @@
-ChatGPT dijo:
-
-Aquí tienes el README FINAL, limpio, directo y listo para pegar en GitHub:
-
 📦 Proyecto — Comercializadora de Productos Médicos
 IS-601 — Base de Datos II
 Tercer Periodo 2025
