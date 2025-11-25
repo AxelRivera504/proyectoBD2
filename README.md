@@ -9,7 +9,7 @@ Proyecto Final — Grupo #1
 
 Integrantes:
 
-20212020267 — Alex Rivera
+20212020267 — Axel Rivera
 
 20172030733 — Darwin Hernández
 
