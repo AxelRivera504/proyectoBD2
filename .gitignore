@@ -1,0 +1,52 @@
+# ---------------------------------------
+#   NODE / REACT IGNORE
+# ---------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.pnpm-store/
+dist/
+build/
+
+# ---------------------------------------
+#   VISUAL STUDIO / .NET IGNORE
+# ---------------------------------------
+.vs/
+*.user
+*.suo
+*.cache
+*.dbmdl
+*.bak
+*.log
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+
+# EF Core Migrations autogeneradas opcionales
+#Migrations/
+
+# ---------------------------------------
+#   SYSTEM / OS FILES
+# ---------------------------------------
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------------------------------------
+#   IDEs
+# ---------------------------------------
+.vscode/
+.idea/
+
+# ---------------------------------------
+#   ENV / KEYS
+# ---------------------------------------
+*.env
+.env.*
+secret.json
+appsettings.Development.json

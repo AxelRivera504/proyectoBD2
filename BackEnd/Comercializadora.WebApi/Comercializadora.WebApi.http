@@ -1,0 +1,6 @@
+@Comercializadora.WebApi_HostAddress = http://localhost:5118
+
+GET {{Comercializadora.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
