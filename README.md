@@ -34,7 +34,7 @@ Ubicarse en la carpeta BackEnd
 Configurar la conexión en appsettings.json:
 
 "ConnectionStrings": {
-  "DefaultConnection": "Server=DESKTOP-U7AG6Q1;Database=ProyectoBD2;Trusted_Connection=True;TrustServerCertificate=True;"
+  "DefaultConnection": "Coloca tu cadena de conexión"
 }
 
 
