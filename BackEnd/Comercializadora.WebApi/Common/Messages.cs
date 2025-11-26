@@ -15,6 +15,8 @@
         public const string PRODUCTO_DESCATIVAR_NO_ENCONTRADO = "Producto que se desea desactivar no existe";
         public const string PRODUCTO_DESCATIVAR_EXITOSAMENTE = "Producto desactivado exitosamente";
         public const string FACTURA_CREADA_EXITOSAMENTE = "Factura agregada exitosamente";
+        public const string PROVEEDORES_OBTENIDOS_EXITOSAMENTE = "Proveedores obtenidos con exito";
+        public const string PROVEEDORES_NO_OBTENIDOS_EXITOSAMENTE = "No hay Proveedores disponibles";
         #endregion
     }
     public static class CodesHttp
@@ -22,6 +24,6 @@
         public const string SUCCESS_CODE = "200";
         public const string CLIENT_ERROR_CODE = "400";
         public const string SERVER_ERROR_CODE = "500";
-        public const string ASISTENCIA_YA_CONFIRMADA = "404";
+        public const string NOTFOUND = "404";
     }
 }

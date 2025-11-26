@@ -1,4 +1,4 @@
--- MÓDULO 2: CRUD (proveedor, producto, cliente) y ejemplos de pattern
+-- Mï¿½DULO 2: CRUD (proveedor, producto, cliente) y ejemplos de pattern
 -- Ejecutar todo el bloque
 GO
 
@@ -70,7 +70,7 @@ BEGIN
     DECLARE @NewId INT = SCOPE_IDENTITY();
 
     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
-    VALUES(@NewId,'Ajuste Inicial',@Existencia,@Existencia,'Creación de producto',GETDATE());
+    VALUES(@NewId,'Ajuste Inicial',@Existencia,@Existencia,'Creaciï¿½n de producto',GETDATE());
 
     SELECT @NewId AS NewId;
 END
@@ -95,7 +95,7 @@ BEGIN
     WHERE IdProducto=@IdProducto;
 
     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
-    VALUES(@IdProducto,'Ajuste',@Existencia,(SELECT Existencia FROM Producto WHERE IdProducto=@IdProducto),'Actualización por SP',GETDATE());
+    VALUES(@IdProducto,'Ajuste',@Existencia,(SELECT Existencia FROM Producto WHERE IdProducto=@IdProducto),'Actualizaciï¿½n por SP',GETDATE());
 END
 GO
 
@@ -325,6 +325,45 @@ BEGIN
     VALUES(@IdPago, @IdFactura, @MontoPagado);
 END
 GO
+
+CREATE PROCEDURE sp_VentaContado_Insert
+    @Total DECIMAL(18,2),
+    @IdVentaContado INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO VentaContado(Fecha, Total)
+    VALUES(GETDATE(), @Total);
+
+    SET @IdVentaContado = SCOPE_IDENTITY();
+END;
+GO
+
+CREATE PROCEDURE sp_VentaDetallealContado_Insert
+    @IdVentaContado INT,
+    @IdProducto INT,
+    @Cantidad INT,
+    @Precio DECIMAL(18,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO VentaDetallealContado(
+        IdVentaContado,
+        IdProducto,
+        Cantidad,
+        Precio
+    )
+    VALUES(
+        @IdVentaContado,
+        @IdProducto,
+        @Cantidad,
+        @Precio
+    );
+END;
+GO
+
 
 
 

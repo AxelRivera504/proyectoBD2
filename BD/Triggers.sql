@@ -1,4 +1,4 @@
--- MÓDULO 6: TRIGGERS
+-- Mï¿½DULO 6: TRIGGERS
 GO
 
 -- 1) Al insertar FacturaProveedor -> actualizar SaldoActual del proveedor
@@ -65,21 +65,48 @@ END
 GO
 
 -- 4) VentaDetallealContado -> ajustar existencia y kardex
+-- CREATE TRIGGER trg_VentaDetalleAlContado_AjustaInventario
+-- ON VentaDetallealContado
+-- AFTER INSERT
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--     UPDATE p
+--     SET p.Existencia = p.Existencia - i.Cantidad
+--     FROM Producto p
+--     JOIN inserted i ON p.IdProducto = i.IdProducto;
+
+--     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
+--     SELECT i.IdProducto,'Salida VentaDetalle', i.Cantidad,(SELECT Existencia FROM Producto WHERE IdProducto=i.IdProducto),'Venta al contado',GETDATE()
+--     FROM inserted i;
+-- END
+-- GO
+
+-- 4) VentaDetallealContado -> ajustar existencia y kardex
 CREATE TRIGGER trg_VentaDetalleAlContado_AjustaInventario
 ON VentaDetallealContado
 AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Descontar producto del inventario
     UPDATE p
     SET p.Existencia = p.Existencia - i.Cantidad
     FROM Producto p
-    JOIN inserted i ON p.IdProducto = i.IdProducto;
+    INNER JOIN inserted i ON p.IdProducto = i.IdProducto;
 
+    -- Registrar en Kardex
     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
-    SELECT i.IdProducto,'Salida VentaDetalle', i.Cantidad,(SELECT Existencia FROM Producto WHERE IdProducto=i.IdProducto),'Venta al contado',GETDATE()
+    SELECT 
+        i.IdProducto,
+        'Salida Venta Contado',
+        i.Cantidad,
+        (SELECT Existencia FROM Producto WHERE IdProducto = i.IdProducto),
+        CONCAT('Venta contado #', i.IdVentaContado),
+        GETDATE()
     FROM inserted i;
-END
+END;
 GO
 
 -- 5) DevolucionProveedor -> aumentar existencia y kardex
@@ -95,7 +122,7 @@ BEGIN
     JOIN inserted d ON p.IdProducto = d.IdProducto;
 
     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
-    SELECT d.IdProducto,'Entrada Devolucion',d.Cantidad,(SELECT Existencia FROM Producto WHERE IdProducto=d.IdProducto),'Devolución a proveedor',GETDATE()
+    SELECT d.IdProducto,'Entrada Devolucion',d.Cantidad,(SELECT Existencia FROM Producto WHERE IdProducto=d.IdProducto),'Devoluciï¿½n a proveedor',GETDATE()
     FROM inserted d;
 END
 GO
@@ -113,7 +140,7 @@ BEGIN
     JOIN inserted d ON p.IdProducto = d.IdProductoInsumo;
 
     INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
-    SELECT d.IdProductoInsumo,'Salida Elaboracion',d.CantidadUsada,(SELECT Existencia FROM Producto WHERE IdProducto=d.IdProductoInsumo),'Uso en elaboración',GETDATE()
+    SELECT d.IdProductoInsumo,'Salida Elaboracion',d.CantidadUsada,(SELECT Existencia FROM Producto WHERE IdProducto=d.IdProductoInsumo),'Uso en elaboraciï¿½n',GETDATE()
     FROM inserted d;
 END
 GO
@@ -136,7 +163,7 @@ BEGIN
 END
 GO
 
--- 8) OrdenCompraDetalle UPDATE (recepción) -> registrar entrada y ajustar existencia
+-- 8) OrdenCompraDetalle UPDATE (recepciï¿½n) -> registrar entrada y ajustar existencia
 CREATE TRIGGER trg_OrdenCompraDetalle_Recepcion
 ON OrdenCompraDetalle
 AFTER UPDATE
@@ -148,7 +175,7 @@ BEGIN
         INSERT INTO InventarioKardex(IdProducto,Movimiento,Cantidad,Saldo,Observaciones,Fecha)
         SELECT d.IdProducto,'Entrada OrdenCompra',d.CantidadRecibida,
                (SELECT Existencia + d.CantidadRecibida FROM Producto WHERE IdProducto=d.IdProducto),
-               CONCAT('Recepción OC ',d.IdOrdenCompra),GETDATE()
+               CONCAT('Recepciï¿½n OC ',d.IdOrdenCompra),GETDATE()
         FROM inserted d
         WHERE d.CantidadRecibida IS NOT NULL AND d.CantidadRecibida>0;
 

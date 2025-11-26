@@ -19,10 +19,19 @@ const Navigation = () => {
             <Link to="/productos" className={isActive('/productos')}>Productos</Link>
           </li>
           <li className="nav-item">
+            <Link to="/clients" className={isActive('/Clientes')}>Clientes</Link>
+          </li>
+          <li className="nav-item">
+            <Link to="/suppliers" className={isActive('/Suppliers')}>Proveedores</Link>
+          </li>
+          <li className="nav-item">
             <Link to="/compras" className={isActive('/compras')}>Compras</Link>
           </li>
           <li className="nav-item">
-            <Link to="/ventas" className={isActive('/ventas')}>Ventas</Link>
+            <Link to="/ventasDetalle" className={isActive('/ventasDetalle')}>Ventas Contado</Link>
+          </li>
+          <li className="nav-item">
+            <Link to="/ventasMayorista" className={isActive('/ventasMayorista')}>Ventas Mayorista</Link>
           </li>
           <li className="nav-item">
             <Link to="/inventario" className={isActive('/inventario')}>Inventario</Link>

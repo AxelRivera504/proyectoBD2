@@ -45,6 +45,8 @@ public partial class ProyectoBd2Context : DbContext
 
     public virtual DbSet<Proveedor> Proveedors { get; set; }
 
+    public virtual DbSet<VentaContado> VentaContados { get; set; }
+
     public virtual DbSet<VentaDetallealContado> VentaDetallealContados { get; set; }
 
     public virtual DbSet<VentaMayoristaDetalle> VentaMayoristaDetalles { get; set; }
@@ -314,6 +316,32 @@ public partial class ProyectoBd2Context : DbContext
             entity.Property(e => e.Telefono).HasMaxLength(20);
         });
 
+        //modelBuilder.Entity<VentaDetallealContado>(entity =>
+        //{
+        //    entity.HasKey(e => e.IdVentaDetalle).HasName("PK__VentaDet__2787211DF6CF02D6");
+
+        //    entity.ToTable("VentaDetallealContado", tb => tb.HasTrigger("trg_VentaDetalleAlContado_AjustaInventario"));
+
+        //    entity.Property(e => e.Fecha)
+        //        .HasDefaultValueSql("(getdate())")
+        //        .HasColumnType("datetime");
+        //    entity.Property(e => e.Precio).HasColumnType("decimal(18, 2)");
+
+        //    entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.VentaDetallealContados)
+        //        .HasForeignKey(d => d.IdProducto)
+        //        .OnDelete(DeleteBehavior.ClientSetNull)
+        //        .HasConstraintName("FK__VentaDeta__IdPro__656C112C");
+        //});
+        modelBuilder.Entity<VentaContado>(entity =>
+        {
+            entity.HasKey(e => e.IdVentaContado).HasName("PK__VentaCon__FF667E6AFC5E5126");
+
+            entity.ToTable("VentaContado");
+
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
+        });
+
         modelBuilder.Entity<VentaDetallealContado>(entity =>
         {
             entity.HasKey(e => e.IdVentaDetalle).HasName("PK__VentaDet__2787211DF6CF02D6");
@@ -329,6 +357,10 @@ public partial class ProyectoBd2Context : DbContext
                 .HasForeignKey(d => d.IdProducto)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__VentaDeta__IdPro__656C112C");
+
+            entity.HasOne(d => d.IdVentaContadoNavigation).WithMany(p => p.VentaDetallealContados)
+                .HasForeignKey(d => d.IdVentaContado)
+                .HasConstraintName("FK_VentaDetalleAlContado_VentaContado");
         });
 
         modelBuilder.Entity<VentaMayoristaDetalle>(entity =>

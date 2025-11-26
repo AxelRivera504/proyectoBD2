@@ -8,6 +8,10 @@ import Products from './pages/Products';
 import Purchases from './pages/Purchases';
 import Sales from './pages/Sales';
 import Inventory from './pages/Inventory';
+import Clients from './pages/Clients';
+import Suppliers from './pages/Supplier';
+import VentasContado from './pages/VentaContado';
+import VentasMayorista from './pages/VentaMayorista';
 
 function App() {
   const [currentSection, setCurrentSection] = useState('dashboard');
@@ -20,8 +24,11 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Products />} />
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/compras" element={<Purchases />} />
-          <Route path="/ventas" element={<Sales />} />
+          <Route path="/ventasDetalle" element={<VentasContado />} />
+          <Route path="/ventasMayorista" element={<VentasMayorista />} />
           <Route path="/inventario" element={<Inventory />} />
         </Routes>
       </main>

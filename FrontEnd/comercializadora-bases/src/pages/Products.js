@@ -60,31 +60,18 @@ const Products = () => {
 
     try {
       if (formData.idProducto === 0) {
-        await addProduct(formData);
-        Swal.fire({
-          icon: "success",
-          title: "Producto agregado",
-          toast: true,
-          position: "top-end",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        const resp = await addProduct(formData);
+        Swal.fire("Éxito", resp.data.data || "Producto agregado exitosamente", "success");
       } else {
-        await updateProduct(formData);
-        Swal.fire({
-          icon: "success",
-          title: "Producto actualizado",
-          toast: true,
-          position: "top-end",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        const resp = await updateProduct(formData);
+        Swal.fire("Éxito", resp.data.data || "Producto actualizado exitosamente", "success");
       }
 
       setShowModal(false);
       loadProducts();
+
     } catch (err) {
-      Swal.fire("Error", "Ocurrió un error al guardar", "error");
+      Swal.fire("Error", "Ocurrió un error al guardar el producto", "error");
     }
   };
 
@@ -105,26 +92,24 @@ const Products = () => {
   };
 
   const handleDelete = async (id) => {
-    Swal.fire({
+    const confirm = await Swal.fire({
       title: "¿Eliminar producto?",
       text: "Esta acción no se puede revertir",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await deleteProduct(id);
-        Swal.fire({
-          icon: "success",
-          title: "Eliminado correctamente",
-          toast: true,
-          position: "top-end",
-          timer: 1800,
-          showConfirmButton: false,
-        });
-        loadProducts();
-      }
+      cancelButtonText: "Cancelar",
     });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const resp = await deleteProduct(id);
+      Swal.fire("Eliminado", resp.data.data || "Producto eliminado exitosamente", "success");
+      loadProducts();
+    } catch (err) {
+      Swal.fire("Error", "No se pudo eliminar el producto", "error");
+    }
   };
 
   const handleChange = (e) => {
@@ -198,7 +183,7 @@ const Products = () => {
 
       {/* Modal ----------------------------- */}
       {showModal && (
-        <div className="modal show fade d-block">
+        <div className="modal show fade d-block" style={{ background: "#00000088" }}>
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content p-3">
 
@@ -207,6 +192,7 @@ const Products = () => {
               </h4>
 
               <form onSubmit={handleSubmit}>
+
                 <div className="row">
                   <div className="col-md-6 mb-2">
                     <label>Nombre</label>
@@ -315,12 +301,14 @@ const Products = () => {
                     Cancelar
                   </button>
                 </div>
+
               </form>
 
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };

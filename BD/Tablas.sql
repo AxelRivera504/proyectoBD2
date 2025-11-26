@@ -1,4 +1,4 @@
--- MÓDULO 1: CREACIÓN DE TABLAS
+-- Mï¿½DULO 1: CREACIï¿½N DE TABLAS
 -- Ejecutar todo este bloque primero
 SET NOCOUNT ON;
 GO
@@ -101,8 +101,16 @@ CREATE TABLE VentaMayoristaDetalle(
 );
 GO
 
+CREATE TABLE VentaContado(
+   IdVentaContado INT IDENTITY PRIMARY KEY,
+   Fecha DATETIME,
+   Total DECIMAL(18,2)
+);
+GO
+
 CREATE TABLE VentaDetallealContado(
     IdVentaDetalle INT IDENTITY(1,1) PRIMARY KEY,
+    IdVentaContado INT NOT NULL FOREIGN KEY REFERENCES VentaContado(IdVentaContado) ON DELETE CASCADE,
     Fecha DATETIME DEFAULT GETDATE(),
     IdProducto INT NOT NULL FOREIGN KEY REFERENCES Producto(IdProducto),
     Cantidad INT NOT NULL,

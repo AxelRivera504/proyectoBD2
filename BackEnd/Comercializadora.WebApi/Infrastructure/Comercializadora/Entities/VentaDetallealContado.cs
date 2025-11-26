@@ -15,5 +15,9 @@ public partial class VentaDetallealContado
 
     public decimal Precio { get; set; }
 
+    public int? IdVentaContado { get; set; }
+
     public virtual Producto IdProductoNavigation { get; set; } = null!;
+
+    public virtual VentaContado? IdVentaContadoNavigation { get; set; }
 }
