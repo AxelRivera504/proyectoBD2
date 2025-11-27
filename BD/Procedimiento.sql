@@ -196,12 +196,16 @@ END
 GO
 
 CREATE PROCEDURE sp_OrdenCompra_Insert
-    @IdProveedor INT
+    @IdProveedor INT,
+    @IdOrdenCompra INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO OrdenCompra(IdProveedor) VALUES(@IdProveedor);
-    SELECT SCOPE_IDENTITY() AS NewId;
+
+    INSERT INTO OrdenCompra(IdProveedor, Fecha, Estado)
+    VALUES(@IdProveedor, GETDATE(), 'Pendiente');
+
+    SET @IdOrdenCompra = SCOPE_IDENTITY();
 END
 GO
 
