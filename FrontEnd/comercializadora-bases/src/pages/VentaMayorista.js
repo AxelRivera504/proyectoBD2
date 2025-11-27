@@ -1,6 +1,18 @@
-// src/pages/VentasMayorista.js
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+
+import DataGrid, {
+  Column,
+  Paging,
+  SearchPanel,
+  FilterRow,
+  HeaderFilter,
+  ColumnChooser,
+  MasterDetail,            // 👈 IMPORTANTE
+} from "devextreme-react/data-grid";
+
+import Popup from "devextreme-react/popup";
+import SelectBox from "devextreme-react/select-box";
 
 import {
   getAllMayorista,
@@ -17,54 +29,38 @@ export default function VentasMayorista() {
 
   const [showModal, setShowModal] = useState(false);
 
-  const [formData, setFormData] = useState({
-    idCliente: "",
-    detalles: [],
-  });
+  const [idCliente, setIdCliente] = useState("");
+  const [detalles, setDetalles] = useState([]);
 
-  const resetForm = () => {
-    setFormData({
-      idCliente: "",
-      detalles: [],
-    });
-  };
+  // Inputs de detalle
+  const [productoId, setProductoId] = useState(null);
+  const [cantidad, setCantidad] = useState("");
+  const [precioUnitario, setPrecioUnitario] = useState("");
 
-  const openNewModal = () => {
-    resetForm();
-    setShowModal(true);
-  };
-
-  // -------------------------------
-  // Cargar datos
-  // -------------------------------
+  // ---------------- Carga de datos ----------------
 
   const loadVentas = async () => {
     try {
       const res = await getAllMayorista();
       setVentas(res.data || []);
     } catch {
-      Swal.fire("Error", "No se pudieron cargar las ventas", "error");
+      Swal.fire("Error", "No se pudieron cargar las ventas mayoristas", "error");
     }
   };
 
- const loadClientes = async () => {
-  try {
-    const res = await getClients();
-
-    if (res.data.ok) {
-      setClientes(res.data.data);   // 👈 AQUÍ ESTÁ EL ARREGLO REAL
-    } else {
-      Swal.fire("Error", res.data.mensaje, "error");
+  const loadClientes = async () => {
+    try {
+      const res = await getClients();
+      if (res.data.ok) setClientes(res.data.data);
+    } catch {
+      Swal.fire("Error", "No se pudieron cargar los clientes", "error");
     }
-  } catch {
-    Swal.fire("Error", "No se pudieron cargar los clientes", "error");
-  }
-};
+  };
 
   const loadProductos = async () => {
     try {
       const res = await getAllProducts();
-      setProductos(res.data || []);
+      setProductos(res.data);
     } catch {
       Swal.fire("Error", "No se pudieron cargar los productos", "error");
     }
@@ -76,266 +72,306 @@ export default function VentasMayorista() {
     loadProductos();
   }, []);
 
-  // -------------------------------
-  // Manejo de detalles
-  // -------------------------------
+  // ---------------- Carrito de detalles ----------------
+
+  const handleSelectProducto = (id) => {
+    setProductoId(id);
+    const prod = productos.find((p) => p.idProducto === id);
+    if (prod) setPrecioUnitario(prod.precioVenta);
+  };
 
   const agregarDetalle = () => {
-    setFormData({
-      ...formData,
-      detalles: [
-        ...formData.detalles,
-        { idProducto: "", cantidad: "", precioUnitario: "" },
-      ],
-    });
-  };
-
-  const actualizarDetalle = (index, field, value) => {
-    const copia = [...formData.detalles];
-    copia[index][field] = value;
-    setFormData({ ...formData, detalles: copia });
-  };
-
-  const eliminarDetalle = (index) => {
-    const copia = [...formData.detalles];
-    copia.splice(index, 1);
-    setFormData({ ...formData, detalles: copia });
-  };
-
-  const calcularTotal = () => {
-    return formData.detalles.reduce((acc, d) => {
-      const cant = Number(d.cantidad) || 0;
-      const precio = Number(d.precioUnitario) || 0;
-      return acc + cant * precio;
-    }, 0);
-  };
-
-  // -------------------------------
-  // Guardar venta
-  // -------------------------------
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-debugger;
-
-    if (!formData.idCliente) {
-      Swal.fire("Validación", "Debe seleccionar un cliente", "warning");
-      return;
+    if (!productoId || !cantidad || !precioUnitario) {
+      return Swal.fire("Error", "Complete todos los campos de detalle", "warning");
     }
 
-    if (formData.detalles.length === 0) {
-      Swal.fire("Validación", "Agregue al menos un producto", "warning");
-      return;
+    const producto = productos.find((p) => p.idProducto === productoId);
+    if (!producto) return;
+
+    if (cantidad > producto.existencia) {
+      return Swal.fire(
+        "Stock insuficiente",
+        `Solo hay ${producto.existencia} unidades disponibles`,
+        "error"
+      );
+    }
+
+    const existente = detalles.find((d) => d.idProducto === productoId);
+
+    if (existente) {
+      existente.cantidad += Number(cantidad);
+      existente.precioUnitario = Number(precioUnitario);
+      setDetalles([...detalles]);
+    } else {
+      setDetalles([
+        ...detalles,
+        {
+          idProducto: productoId,
+          nombre: producto.nombre,
+          cantidad: Number(cantidad),
+          precioUnitario: Number(precioUnitario),
+        },
+      ]);
+    }
+
+    setProductoId(null);
+    setCantidad("");
+    setPrecioUnitario("");
+  };
+
+  const eliminarDetalle = (id) => {
+    setDetalles(detalles.filter((d) => d.idProducto !== id));
+  };
+
+  const totalVenta = detalles.reduce(
+    (acc, d) => acc + d.cantidad * d.precioUnitario,
+    0
+  );
+
+  // ---------------- Guardar venta mayorista ----------------
+
+  const handleGuardar = async () => {
+    if (!idCliente) {
+      return Swal.fire("Error", "Debe seleccionar un cliente", "warning");
+    }
+    if (detalles.length === 0) {
+      return Swal.fire("Error", "Debe agregar al menos un producto", "warning");
     }
 
     const payload = {
-      idCliente: Number(formData.idCliente),
-      total: calcularTotal(),
-      detalles: formData.detalles.map((d) => ({
-        idProducto: Number(d.idProducto),
-        cantidad: Number(d.cantidad),
-        precioUnitario: Number(d.precioUnitario),
+      idCliente: Number(idCliente),
+      total: totalVenta,
+      detalles: detalles.map((d) => ({
+        idProducto: d.idProducto,
+        cantidad: d.cantidad,
+        precioUnitario: d.precioUnitario,
       })),
     };
 
     try {
       await createMayorista(payload);
-
-      Swal.fire({
-        icon: "success",
-        title: "Venta mayorista registrada",
-        toast: true,
-        position: "top-end",
-        timer: 2000,
-        showConfirmButton: false,
-      });
+      Swal.fire("Éxito", "Venta mayorista registrada con éxito", "success");
 
       setShowModal(false);
+      setIdCliente("");
+      setDetalles([]);
       loadVentas();
     } catch {
       Swal.fire("Error", "No se pudo registrar la venta", "error");
     }
   };
 
+  // ---------------- Template de detalle (master-detail) ----------------
+
+  const detalleTemplate = (detailInfo) => {
+    const venta = detailInfo.data;
+    const rows = venta.detalles || [];
+
+    if (!rows.length) {
+      return (
+        <div className="p-3">
+          <strong>Venta #{venta.idVenta}</strong>
+          <div className="text-muted mt-2">Esta venta no tiene detalles.</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-3">
+        <strong>Detalle de la venta #{venta.idVenta}</strong>
+        <DataGrid
+          dataSource={rows}
+          keyExpr="idProducto"
+          showBorders={true}
+          columnAutoWidth={true}
+          rowAlternationEnabled={true}
+          height={260}
+        >
+          <Column dataField="idProducto" caption="ID" width={80} />
+          <Column dataField="nombreProducto" caption="Producto" />
+          <Column dataField="cantidad" caption="Cantidad" width={100} />
+          <Column
+            dataField="precioUnitario"
+            caption="Precio Unit."
+            width={130}
+          />
+          <Column
+            caption="Subtotal"
+            width={130}
+            calculateCellValue={(row) =>
+              (row.cantidad || 0) * (row.precioUnitario || 0)
+            }
+          />
+        </DataGrid>
+      </div>
+    );
+  };
+
+  // ---------------- Render ----------------
+
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Ventas al Mayorista</h2>
 
-      <button className="btn btn-primary mb-3" onClick={openNewModal}>
+      <button className="btn btn-primary mb-3" onClick={() => setShowModal(true)}>
         + Nueva Venta Mayorista
       </button>
 
-      {/* Tabla */}
-      <table className="table table-striped table-bordered text-center">
-        <thead className="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Cliente</th>
-            <th>Fecha</th>
-            <th>Total</th>
-            <th>Estado</th>
-            <th>Detalles</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ventas.length === 0 ? (
-            <tr>
-              <td colSpan="6">No hay ventas registradas</td>
-            </tr>
-          ) : (
-            ventas.map((v) => (
-              <tr key={v.idVenta}>
-                <td>{v.idVenta}</td>
-                <td>{v.nombreCliente}</td>
-                <td>{v.fecha}</td>
-                <td>{v.total}</td>
-                <td>{v.estado}</td>
-                <td className="text-start">
-                  {v.detalles?.map((d, i) => (
-                    <div key={i}>
-                      {d.nombreProducto} — Cant: {d.cantidad} — L. {d.precioUnitario}
-                    </div>
-                  ))}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      {/* GRID PRINCIPAL */}
+      <DataGrid
+        dataSource={ventas}
+        keyExpr="idVenta"
+        showBorders={true}
+        columnAutoWidth={true}
+        rowAlternationEnabled={true}
+        height={600}
+      >
+        <SearchPanel visible={true} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
+        <ColumnChooser enabled={true} />
+        <Paging defaultPageSize={10} />
 
-      {/* Modal */}
-      {showModal && (
-        <div className="modal show fade d-block">
-          <div className="modal-dialog modal-xl modal-dialog-centered">
-            <div className="modal-content p-3">
-              <h4 className="mb-3">Nueva Venta Mayorista</h4>
+        <Column dataField="idVenta" caption="ID" width={80} />
+        <Column dataField="nombreCliente" caption="Cliente" />
+        <Column
+          dataField="fecha"
+          caption="Fecha"
+          customizeText={(e) => e.value?.split("T")[0] || "-"}
+          width={120}
+        />
+        <Column dataField="total" caption="Total L." width={130} />
+        <Column dataField="estado" caption="Estado" width={120} />
 
-              <form onSubmit={handleSubmit}>
-                {/* Cliente */}
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label>Cliente</label>
-                    <select
-                      className="form-control"
-                      value={formData.idCliente}
-                      onChange={(e) =>
-                        setFormData({ ...formData, idCliente: e.target.value })
-                      }
-                      required
-                    >
-                      <option value="">Seleccione un cliente</option>
-                      {clientes.map((c) => (
-                        <option key={c.idCliente} value={c.idCliente}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+        {/* 👇 MasterDetail según la demo de DevExtreme */}
+        <MasterDetail enabled={true} render={detalleTemplate} />
+      </DataGrid>
 
-                  <div className="col-md-6">
-                    <label>Total</label>
-                    <input
-                      className="form-control"
-                      value={calcularTotal()}
-                      disabled
-                    />
-                  </div>
-                </div>
+      {/* POPUP DE NUEVA VENTA */}
+      <Popup
+        visible={showModal}
+        onHiding={() => setShowModal(false)}
+        closeOnOutsideClick={true}
+        width={850}
+        title="Registrar Venta Mayorista"
+      >
+        <div className="p-3">
+          {/* Cliente */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label>Cliente</label>
+              <SelectBox
+                items={clientes}
+                displayExpr="nombre"
+                valueExpr="idCliente"
+                value={idCliente}
+                onValueChange={setIdCliente}
+                searchEnabled={true}
+                placeholder="Seleccione cliente"
+              />
+            </div>
 
-                <hr />
-
-                <div className="d-flex justify-content-between mb-2">
-                  <h5>Detalles</h5>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={agregarDetalle}
-                  >
-                    + Agregar producto
-                  </button>
-                </div>
-
-                {formData.detalles.map((d, index) => (
-                  <div className="row mb-2" key={index}>
-                    <div className="col-md-4">
-                      <label>Producto</label>
-                      <select
-                        className="form-control"
-                        value={d.idProducto}
-                        onChange={(e) =>
-                          actualizarDetalle(index, "idProducto", e.target.value)
-                        }
-                        required
-                      >
-                        <option value="">Seleccione</option>
-                        {productos.map((p) => (
-                          <option key={p.idProducto} value={p.idProducto}>
-                            {p.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-md-3">
-                      <label>Cantidad</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={d.cantidad}
-                        onChange={(e) =>
-                          actualizarDetalle(index, "cantidad", e.target.value)
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-3">
-                      <label>Precio Unitario</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={d.precioUnitario}
-                        onChange={(e) =>
-                          actualizarDetalle(
-                            index,
-                            "precioUnitario",
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-2 d-flex align-items-end">
-                      <button
-                        type="button"
-                        className="btn btn-danger w-100"
-                        onClick={() => eliminarDetalle(index)}
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Botones */}
-                <div className="mt-3 d-flex justify-content-end">
-                  <button className="btn btn-success me-2" type="submit">
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
+            <div className="col-md-6">
+              <label>Total</label>
+              <input className="form-control" value={totalVenta} disabled />
             </div>
           </div>
+
+          <hr />
+
+          {/* Agregar producto */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label>Producto</label>
+              <SelectBox
+                items={productos}
+                displayExpr="nombre"
+                valueExpr="idProducto"
+                value={productoId}
+                onValueChange={handleSelectProducto}
+                searchEnabled={true}
+                placeholder="Seleccione producto"
+              />
+            </div>
+
+            <div className="col-md-3">
+              <label>Cantidad</label>
+              <input
+                type="number"
+                className="form-control"
+                value={cantidad}
+                onChange={(e) => setCantidad(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="col-md-3">
+              <label>Precio Unitario</label>
+              <input
+                type="number"
+                className="form-control"
+                value={precioUnitario}
+                onChange={(e) => setPrecioUnitario(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="col-md-2 d-flex align-items-end">
+              <button className="btn btn-secondary w-100" onClick={agregarDetalle}>
+                + Agregar
+              </button>
+            </div>
+          </div>
+
+          {/* Tabla de detalles (carrito) */}
+          <table className="table table-bordered text-center mt-3">
+            <thead className="table-dark">
+              <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>Precio</th>
+                <th>Subtotal</th>
+                <th>Quitar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detalles.length === 0 ? (
+                <tr>
+                  <td colSpan="5">Sin productos</td>
+                </tr>
+              ) : (
+                detalles.map((d) => (
+                  <tr key={d.idProducto}>
+                    <td>{d.nombre}</td>
+                    <td>{d.cantidad}</td>
+                    <td>{d.precioUnitario}</td>
+                    <td>{d.cantidad * d.precioUnitario}</td>
+                    <td>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => eliminarDetalle(d.idProducto)}
+                      >
+                        X
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {/* Botones */}
+          <div className="text-end mt-3">
+            <button className="btn btn-success me-2" onClick={handleGuardar}>
+              Guardar Venta
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowModal(false)}
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
-      )}
+      </Popup>
     </div>
   );
 }

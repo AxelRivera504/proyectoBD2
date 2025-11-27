@@ -25,7 +25,7 @@ const Navigation = () => {
             <Link to="/suppliers" className={isActive('/Suppliers')}>Proveedores</Link>
           </li>
           <li className="nav-item">
-            <Link to="/compras" className={isActive('/compras')}>Compras</Link>
+            <Link to="/purchaseOrders" className={isActive('/purchaseOrders')}>Ordenes de compra</Link>
           </li>
           <li className="nav-item">
             <Link to="/ventasDetalle" className={isActive('/ventasDetalle')}>Ventas Contado</Link>

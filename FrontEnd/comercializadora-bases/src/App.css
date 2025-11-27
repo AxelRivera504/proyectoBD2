@@ -28,6 +28,36 @@
   color: #61dafb;
 }
 
+/* Asegura que los toasts estén sobre DevExtreme Popup */
+.swal2-container {
+  z-index: 200000 !important;
+}
+
+.swal2-popup {
+  z-index: 200000 !important;
+}
+
+.swal2-toast {
+  z-index: 200000 !important;
+}
+
+/* Sobrescribir z-index del overlay de DevExtreme */
+.dx-overlay-wrapper,
+.dx-overlay-content,
+.dx-popup-wrapper {
+  z-index: 1500 !important;  /* Debe ser MENOR que el swal2-container */
+}
+
+/* Opcional: si usas modales bootstrap también */
+.modal {
+  z-index: 1050 !important;
+}
+
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

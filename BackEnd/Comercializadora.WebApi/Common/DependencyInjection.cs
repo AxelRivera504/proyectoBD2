@@ -1,5 +1,6 @@
 ﻿using Comercializadora.WebApi.Features.Client;
 using Comercializadora.WebApi.Features.Products;
+using Comercializadora.WebApi.Features.PurchaseOrders;
 using Comercializadora.WebApi.Features.SalesBilling;
 using Comercializadora.WebApi.Features.Supplier;
 using Comercializadora.WebApi.Infrastructure.Comercializadora;
@@ -23,7 +24,8 @@ namespace Comercializadora.WebApi.Common
                            .AddScoped<IProductService, ProductService>()
                            .AddScoped<IClientService, ClientService>()
                            .AddScoped<ISupplierService, SupplierService>()
-                           .AddScoped<ISalesBilling, SalesBilling>();
+                           .AddScoped<ISalesBilling, SalesBilling>()
+                           .AddScoped<IPurchaseOrderService, PurchaseOrderService>();
 
         }
     }

@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+
+import DataGrid, {
+  Column,
+  Paging,
+  SearchPanel,
+  FilterRow,
+  HeaderFilter,
+  ColumnChooser,
+} from "devextreme-react/data-grid";
+
+import Popup from "devextreme-react/popup";
+import Form, { Item, Label } from "devextreme-react/form";
+
 import {
   getAllProducts,
   addProduct,
@@ -7,7 +20,7 @@ import {
   deleteProduct,
 } from "../services/products/product_service";
 
-const Products = () => {
+export default function Products() {
   const [products, setProducts] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -23,25 +36,7 @@ const Products = () => {
     tipo: "",
   });
 
-  const resetForm = () => {
-    setFormData({
-      idProducto: 0,
-      nombre: "",
-      descripcion: "",
-      precioCosto: "",
-      precioVenta: "",
-      existencia: "",
-      minimo: "",
-      fechaVencimiento: "",
-      tipo: "",
-    });
-  };
-
-  const openNewModal = () => {
-    resetForm();
-    setShowModal(true);
-  };
-
+  // 🚀 Cargar productos
   const loadProducts = async () => {
     try {
       const res = await getAllProducts();
@@ -55,42 +50,58 @@ const Products = () => {
     loadProducts();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Crear
+  const openNewModal = () => {
+    setFormData({
+      idProducto: 0,
+      nombre: "",
+      descripcion: "",
+      precioCosto: "",
+      precioVenta: "",
+      existencia: "",
+      minimo: "",
+      fechaVencimiento: "",
+      tipo: "",
+    });
+    setShowModal(true);
+  };
 
-    try {
-      if (formData.idProducto === 0) {
-        const resp = await addProduct(formData);
-        Swal.fire("Éxito", resp.data.data || "Producto agregado exitosamente", "success");
-      } else {
-        const resp = await updateProduct(formData);
-        Swal.fire("Éxito", resp.data.data || "Producto actualizado exitosamente", "success");
-      }
+  // Editar
+  const openEditModal = (p) => {
+    setFormData({
+      ...p,
+      fechaVencimiento: p.fechaVencimiento ? p.fechaVencimiento.split("T")[0] : "",
+    });
+    setShowModal(true);
+  };
+
+  // Guardar
+  const saveProduct = async () => {
+  try {
+    const isEdit = formData.idProducto > 0;
+
+    const payload = {
+      ...formData,
+      fechaVencimiento: formData.fechaVencimiento
+        ? new Date(formData.fechaVencimiento).toISOString().split("T")[0]
+        : null,
+    };
+
+    const resp = isEdit
+      ? await updateProduct(payload)
+      : await addProduct(payload);
+
+      Swal.fire("Éxito", resp.data.data || "Guardado correctamente", "success");
 
       setShowModal(false);
       loadProducts();
 
     } catch (err) {
-      Swal.fire("Error", "Ocurrió un error al guardar el producto", "error");
+      Swal.fire("Error", "Error al guardar el producto", "error");
     }
   };
 
-  const handleEdit = (prod) => {
-    setFormData({
-      idProducto: prod.idProducto,
-      nombre: prod.nombre,
-      descripcion: prod.descripcion,
-      precioCosto: prod.precioCosto,
-      precioVenta: prod.precioVenta,
-      existencia: prod.existencia,
-      minimo: prod.minimo,
-      fechaVencimiento: prod.fechaVencimiento || "",
-      tipo: prod.tipo,
-    });
-
-    setShowModal(true);
-  };
-
+  // Eliminar
   const handleDelete = async (id) => {
     const confirm = await Swal.fire({
       title: "¿Eliminar producto?",
@@ -105,18 +116,11 @@ const Products = () => {
 
     try {
       const resp = await deleteProduct(id);
-      Swal.fire("Eliminado", resp.data.data || "Producto eliminado exitosamente", "success");
+      Swal.fire("Eliminado", resp.data.data || "Producto eliminado", "success");
       loadProducts();
     } catch (err) {
-      Swal.fire("Error", "No se pudo eliminar el producto", "error");
+      Swal.fire("Error", "No se pudo eliminar", "error");
     }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
   };
 
   return (
@@ -128,189 +132,123 @@ const Products = () => {
         + Nuevo Producto
       </button>
 
-      {/* Tabla ----------------------------- */}
-      <table className="table table-striped table-bordered text-center">
-        <thead className="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Costo</th>
-            <th>Venta</th>
-            <th>Stock</th>
-            <th>Mínimo</th>
-            <th>Tipo</th>
-            <th>Expira</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.length === 0 ? (
-            <tr>
-              <td colSpan="10">No hay productos</td>
-            </tr>
-          ) : (
-            products.map((p) => (
-              <tr key={p.idProducto}>
-                <td>{p.idProducto}</td>
-                <td>{p.nombre}</td>
-                <td>{p.descripcion}</td>
-                <td>{p.precioCosto}</td>
-                <td>{p.precioVenta}</td>
-                <td>{p.existencia}</td>
-                <td>{p.minimo}</td>
-                <td>{p.tipo}</td>
-                <td>{p.fechaVencimiento || "-"}</td>
-                <td>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => handleEdit(p)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(p.idProducto)}
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))
+      {/* 📌 DevExtreme DataGrid */}
+      <DataGrid
+        dataSource={products}
+        keyExpr="idProducto"
+        showBorders={true}
+        columnAutoWidth={true}
+        height={550}
+      >
+        <SearchPanel visible={true} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
+        <ColumnChooser enabled={true} />
+
+        <Paging defaultPageSize={10} />
+
+        <Column dataField="idProducto" caption="ID" width={60} />
+        <Column dataField="nombre" caption="Nombre" />
+        <Column dataField="descripcion" caption="Descripción" />
+        <Column dataField="precioCosto" caption="Costo" />
+        <Column dataField="precioVenta" caption="Venta" />
+        <Column dataField="existencia" caption="Stock" />
+        <Column dataField="minimo" caption="Mínimo" />
+        <Column dataField="tipo" caption="Tipo" />
+
+        <Column
+          dataField="fechaVencimiento"
+          caption="Vencimiento"
+          customizeText={(e) => (e.value ? e.value.split("T")[0] : "-")}
+        />
+
+        <Column
+          caption="Acciones"
+          width={180}
+          cellRender={(e) => (
+            <>
+              <button
+                className="btn btn-warning btn-sm me-2"
+                onClick={() => openEditModal(e.data)}
+              >
+                Editar
+              </button>
+
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => handleDelete(e.data.idProducto)}
+              >
+                Eliminar
+              </button>
+            </>
           )}
-        </tbody>
-      </table>
+        />
+      </DataGrid>
 
-      {/* Modal ----------------------------- */}
-      {showModal && (
-        <div className="modal show fade d-block" style={{ background: "#00000088" }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content p-3">
+      {/* 📌 Popup DevExtreme */}
+      <Popup
+        visible={showModal}
+        onHiding={() => setShowModal(false)}
+        closeOnOutsideClick={true}
+        dragEnabled={false}
+        width={650}
+        height="auto"
+        title={formData.idProducto === 0 ? "Nuevo Producto" : "Editar Producto"}
+      >
+        <Form
+          formData={formData}
+          onFieldDataChanged={(e) =>
+            setFormData({ ...formData, [e.dataField]: e.value })
+          }
+        >
+          <Item dataField="nombre">
+            <Label text="Nombre" />
+          </Item>
 
-              <h4 className="mb-3">
-                {formData.idProducto === 0 ? "Nuevo Producto" : "Editar Producto"}
-              </h4>
+          <Item dataField="descripcion">
+            <Label text="Descripción" />
+          </Item>
 
-              <form onSubmit={handleSubmit}>
+          <Item dataField="precioCosto" editorType="dxNumberBox">
+            <Label text="Costo" />
+          </Item>
 
-                <div className="row">
-                  <div className="col-md-6 mb-2">
-                    <label>Nombre</label>
-                    <input
-                      className="form-control"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+          <Item dataField="precioVenta" editorType="dxNumberBox">
+            <Label text="Venta" />
+          </Item>
 
-                  <div className="col-md-6 mb-2">
-                    <label>Descripción</label>
-                    <input
-                      className="form-control"
-                      name="descripcion"
-                      value={formData.descripcion}
-                      onChange={handleChange}
-                    />
-                  </div>
+          <Item dataField="existencia" editorType="dxNumberBox">
+            <Label text="Existencia" />
+          </Item>
 
-                  <div className="col-md-4 mb-2">
-                    <label>Costo</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="precioCosto"
-                      value={formData.precioCosto}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+          <Item dataField="minimo" editorType="dxNumberBox">
+            <Label text="Mínimo" />
+          </Item>
 
-                  <div className="col-md-4 mb-2">
-                    <label>Venta</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="precioVenta"
-                      value={formData.precioVenta}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+          <Item dataField="tipo" editorType="dxSelectBox"
+            editorOptions={{
+              items: ["Producto", "MateriaPrima"],
+              searchEnabled: true,
+            }}
+          >
+            <Label text="Tipo" />
+          </Item>
 
-                  <div className="col-md-4 mb-2">
-                    <label>Existencia</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="existencia"
-                      value={formData.existencia}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+          <Item dataField="fechaVencimiento" editorType="dxDateBox">
+            <Label text="Fecha de vencimiento" />
+          </Item>
 
-                  <div className="col-md-4 mb-2">
-                    <label>Mínimo</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="minimo"
-                      value={formData.minimo}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+        </Form>
 
-                  <div className="col-md-4 mb-2">
-                    <label>Tipo</label>
-                    <select
-                      name="tipo"
-                      className="form-control"
-                      value={formData.tipo}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Seleccione</option>
-                      <option value="Producto">Producto</option>
-                      <option value="MateriaPrima">Materia Prima</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-4 mb-2">
-                    <label>Fecha de vencimiento</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="fechaVencimiento"
-                      value={formData.fechaVencimiento}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 d-flex justify-content-end">
-                  <button className="btn btn-success me-2" type="submit">
-                    Guardar
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-
-              </form>
-
-            </div>
-          </div>
+        <div className="text-end mt-3">
+          <button className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>
+            Cancelar
+          </button>
+          <button className="btn btn-success" onClick={saveProduct}>
+            Guardar
+          </button>
         </div>
-      )}
-
+      </Popup>
     </div>
   );
-};
-
-export default Products;
+}

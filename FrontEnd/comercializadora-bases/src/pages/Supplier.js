@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+
+import DataGrid, {
+  Column,
+  Paging,
+  SearchPanel,
+  FilterRow,
+  HeaderFilter,
+  ColumnChooser,
+} from "devextreme-react/data-grid";
+
+import Popup from "devextreme-react/popup";
+import Form, { Item, Label } from "devextreme-react/form";
+
 import {
   getAllSuppliers,
   addSupplier,
@@ -7,7 +20,7 @@ import {
   deleteSupplier,
 } from "../services/Suppliers/supplier_service";
 
-const Suppliers = () => {
+export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -22,24 +35,7 @@ const Suppliers = () => {
     fechaRegistro: "",
   });
 
-  const resetForm = () => {
-    setFormData({
-      idProveedor: 0,
-      nombre: "",
-      rtn: "",
-      telefono: "",
-      direccion: "",
-      limiteCredito: "",
-      saldoActual: "",
-      fechaRegistro: "",
-    });
-  };
-
-  const openNewModal = () => {
-    resetForm();
-    setShowModal(true);
-  };
-
+  // 🚀 Cargar proveedores
   const loadSuppliers = async () => {
     try {
       const res = await getAllSuppliers();
@@ -53,42 +49,58 @@ const Suppliers = () => {
     loadSuppliers();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      if (formData.idProveedor === 0) {
-        const resp = await addSupplier(formData);
-        Swal.fire("Éxito", resp.data || "Proveedor agregado exitosamente", "success");
-      } else {
-        const resp = await updateSupplier(formData);
-        Swal.fire("Éxito", resp.data || "Proveedor actualizado exitosamente", "success");
-      }
-
-      setShowModal(false);
-      loadSuppliers();
-
-    } catch (err) {
-      Swal.fire("Error", "Ocurrió un error al guardar el proveedor", "error");
-    }
-  };
-
-  const handleEdit = (sup) => {
+  // Crear proveedor
+  const openNewModal = () => {
     setFormData({
-      idProveedor: sup.idProveedor,
-      nombre: sup.nombre,
-      rtn: sup.rtn || "",
-      telefono: sup.telefono || "",
-      direccion: sup.direccion || "",
-      limiteCredito: sup.limiteCredito || "",
-      saldoActual: sup.saldoActual || "",
-      fechaRegistro: sup.fechaRegistro?.split("T")[0] || "",
+      idProveedor: 0,
+      nombre: "",
+      rtn: "",
+      telefono: "",
+      direccion: "",
+      limiteCredito: "",
+      saldoActual: "",
+      fechaRegistro: "",
     });
-
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
+  // Editar proveedor
+  const openEditModal = (sup) => {
+    setFormData({
+      ...sup,
+      fechaRegistro: sup.fechaRegistro ? sup.fechaRegistro.split("T")[0] : "",
+    });
+    setShowModal(true);
+  };
+
+  // Guardar proveedor
+  const saveSupplier = async () => {
+    try {
+      const isEdit = formData.idProveedor > 0;
+
+      const payload = {
+        ...formData,
+        fechaRegistro:
+          formData.fechaRegistro && formData.fechaRegistro !== ""
+            ? new Date(formData.fechaRegistro).toISOString().split("T")[0]
+            : null,
+      };
+
+      const resp = isEdit
+        ? await updateSupplier(payload)
+        : await addSupplier(payload);
+
+      Swal.fire("Éxito", resp.data.data || "Guardado correctamente", "success");
+
+      setShowModal(false);
+      loadSuppliers();
+    } catch (err) {
+      Swal.fire("Error", "Error al guardar el proveedor", "error");
+    }
+  };
+
+  // Eliminar proveedor
+  const handleDelete = async (idProveedor) => {
     const confirm = await Swal.fire({
       title: "¿Eliminar proveedor?",
       text: "Esta acción no se puede revertir",
@@ -101,192 +113,136 @@ const Suppliers = () => {
     if (!confirm.isConfirmed) return;
 
     try {
-      const resp = await deleteSupplier(id);
-      Swal.fire("Eliminado", resp.data || "Proveedor eliminado exitosamente", "success");
+      const resp = await deleteSupplier(idProveedor);
+      Swal.fire("Eliminado", resp.data.data || "Proveedor eliminado", "success");
       loadSuppliers();
     } catch (err) {
-      Swal.fire("Error", "No se pudo eliminar el proveedor", "error");
+      Swal.fire("Error", "No se pudo eliminar", "error");
     }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
   };
 
   return (
     <div className="container mt-4">
-
       <h2 className="mb-4">Gestión de Proveedores</h2>
 
       <button className="btn btn-primary mb-3" onClick={openNewModal}>
         + Nuevo Proveedor
       </button>
 
-      {/* Tabla ----------------------------- */}
-      <table className="table table-striped table-bordered text-center">
-        <thead className="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>RTN</th>
-            <th>Teléfono</th>
-            <th>Dirección</th>
-            <th>Límite Crédito</th>
-            <th>Saldo Actual</th>
-            <th>Registro</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+      {/* 📌 DevExtreme DataGrid */}
+      <DataGrid
+        dataSource={suppliers}
+        keyExpr="idProveedor"
+        showBorders={true}
+        columnAutoWidth={true}
+        height={550}
+      >
+        <SearchPanel visible={true} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
+        <ColumnChooser enabled={true} />
 
-        <tbody>
-          {suppliers.length === 0 ? (
-            <tr><td colSpan="9">No hay proveedores</td></tr>
-          ) : (
-            suppliers.map((sup) => (
-              <tr key={sup.idProveedor}>
-                <td>{sup.idProveedor}</td>
-                <td>{sup.nombre}</td>
-                <td>{sup.rtn || "-"}</td>
-                <td>{sup.telefono || "-"}</td>
-                <td>{sup.direccion || "-"}</td>
-                <td>{sup.limiteCredito}</td>
-                <td>{sup.saldoActual}</td>
-                <td>{sup.fechaRegistro?.split("T")[0] || "-"}</td>
-                <td>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => handleEdit(sup)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(sup.idProveedor)}
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))
+        <Paging defaultPageSize={10} />
+
+        <Column dataField="idProveedor" caption="ID" width={60} />
+        <Column dataField="nombre" caption="Nombre" />
+        <Column dataField="rtn" caption="RTN" />
+        <Column dataField="telefono" caption="Teléfono" />
+        <Column dataField="direccion" caption="Dirección" />
+        <Column dataField="limiteCredito" caption="Límite Crédito" />
+        <Column dataField="saldoActual" caption="Saldo Actual" />
+
+        <Column
+          dataField="fechaRegistro"
+          caption="Registro"
+          customizeText={(e) => (e.value ? e.value.split("T")[0] : "-")}
+        />
+
+        <Column
+          caption="Acciones"
+          width={180}
+          cellRender={(e) => (
+            <>
+              <button
+                className="btn btn-warning btn-sm me-2"
+                onClick={() => openEditModal(e.data)}
+              >
+                Editar
+              </button>
+
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => handleDelete(e.data.idProveedor)}
+              >
+                Eliminar
+              </button>
+            </>
           )}
-        </tbody>
+        />
+      </DataGrid>
 
-      </table>
+      {/* 📌 Popup DevExtreme */}
+      <Popup
+        visible={showModal}
+        onHiding={() => setShowModal(false)}
+        closeOnOutsideClick={true}
+        dragEnabled={false}
+        width={650}
+        height="auto"
+        title={formData.idProveedor === 0 ? "Nuevo Proveedor" : "Editar Proveedor"}
+      >
+        <Form
+          formData={formData}
+          onFieldDataChanged={(e) =>
+            setFormData({ ...formData, [e.dataField]: e.value })
+          }
+        >
+          <Item dataField="nombre">
+            <Label text="Nombre" />
+          </Item>
 
-      {/* Modal ----------------------------- */}
-      {showModal && (
-        <div className="modal show fade d-block" style={{ background: "#00000088" }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content p-3">
+          <Item dataField="rtn">
+            <Label text="RTN" />
+          </Item>
 
-              <h4 className="mb-3">
-                {formData.idProveedor === 0 ? "Nuevo Proveedor" : "Editar Proveedor"}
-              </h4>
+          <Item dataField="telefono">
+            <Label text="Teléfono" />
+          </Item>
 
-              <form onSubmit={handleSubmit}>
+          <Item dataField="direccion">
+            <Label text="Dirección" />
+          </Item>
 
-                <div className="row">
+          <Item dataField="limiteCredito" editorType="dxNumberBox">
+            <Label text="Límite Crédito" />
+          </Item>
 
-                  <div className="col-md-6 mb-2">
-                    <label>Nombre</label>
-                    <input
-                      className="form-control"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+          <Item dataField="saldoActual" editorType="dxNumberBox">
+            <Label text="Saldo Actual" />
+          </Item>
 
-                  <div className="col-md-6 mb-2">
-                    <label>RTN</label>
-                    <input
-                      className="form-control"
-                      name="rtn"
-                      value={formData.rtn}
-                      onChange={handleChange}
-                    />
-                  </div>
+          <Item
+            dataField="fechaRegistro"
+            editorType="dxDateBox"
+            editorOptions={{
+              type: "date",
+              displayFormat: "yyyy-MM-dd",
+              value: formData.fechaRegistro || null,
+            }}
+          >
+            <Label text="Fecha Registro" />
+          </Item>
+        </Form>
 
-                  <div className="col-md-6 mb-2">
-                    <label>Teléfono</label>
-                    <input
-                      className="form-control"
-                      name="telefono"
-                      value={formData.telefono}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-2">
-                    <label>Dirección</label>
-                    <input
-                      className="form-control"
-                      name="direccion"
-                      value={formData.direccion}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-2">
-                    <label>Límite Crédito</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="limiteCredito"
-                      value={formData.limiteCredito}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-2">
-                    <label>Saldo Actual</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="saldoActual"
-                      value={formData.saldoActual}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                  <div className="col-md-6 mb-2">
-                    <label>Fecha Registro</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="fechaRegistro"
-                      value={formData.fechaRegistro}
-                      onChange={handleChange}
-                    />
-                  </div>
-
-                </div>
-
-                <div className="mt-3 d-flex justify-content-end">
-                  <button className="btn btn-success me-2" type="submit">
-                    Guardar
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-
-              </form>
-
-            </div>
-          </div>
+        <div className="text-end mt-3">
+          <button className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>
+            Cancelar
+          </button>
+          <button className="btn btn-success" onClick={saveSupplier}>
+            Guardar
+          </button>
         </div>
-      )}
-
+      </Popup>
     </div>
   );
-};
-
-export default Suppliers;
+}

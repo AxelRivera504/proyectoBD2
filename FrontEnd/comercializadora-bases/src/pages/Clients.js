@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+
+import DataGrid, {
+  Column,
+  Paging,
+  SearchPanel,
+  FilterRow,
+  HeaderFilter,
+  ColumnChooser,
+} from "devextreme-react/data-grid";
+
+import Popup from "devextreme-react/popup";
+import Form, { Item, Label } from "devextreme-react/form";
+
 import {
   getClients,
   addClient,
@@ -7,7 +20,7 @@ import {
   deleteClient,
 } from "../services/clients/client_service";
 
-const Clients = () => {
+export default function Clients() {
   const [clients, setClients] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -20,7 +33,7 @@ const Clients = () => {
     fechaRegistro: "",
   });
 
-  // Cargar todos los clientes
+  // 🚀 Cargar clientes
   const loadClients = async () => {
     try {
       const response = await getClients();
@@ -39,7 +52,7 @@ const Clients = () => {
     loadClients();
   }, []);
 
-  // Abrir modal en modo creación
+  // 🟢 Nuevo cliente
   const openCreateModal = () => {
     setFormData({
       idCliente: 0,
@@ -52,68 +65,61 @@ const Clients = () => {
     setShowModal(true);
   };
 
-  // Abrir modal en modo edición
+  // 🟡 Editar cliente
   const openEditModal = (client) => {
-    setFormData(client);
+    setFormData({
+      ...client,
+      fechaRegistro: client.fechaRegistro
+        ? client.fechaRegistro.split("T")[0]
+        : "",
+    });
     setShowModal(true);
   };
 
-  const closeModal = () => setShowModal(false);
-
-  const handleChange = (e) =>
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-
-  const saveClient = async (e) => {
-    e.preventDefault();
-    const isEdit = formData.idCliente > 0;
-
-    try {
-      let response = isEdit
-        ? await updateClient(formData)
-        : await addClient(formData);
-
-      if (response.data.ok) {
-        Swal.fire(
-          "Éxito",
-          response.data.data,
-          "success"
-        );
-        closeModal();
-        loadClients();
-      } else {
-        Swal.fire("Error", response.data.mensaje, "error");
-      }
-    } catch (error) {
-      Swal.fire("Error", "Hubo un problema al guardar el cliente", "error");
-    }
-  };
-
+  // 🔴 Eliminar cliente
   const handleDelete = async (client) => {
-    const confirm = await Swal.fire({
+    Swal.fire({
       title: "¿Eliminar cliente?",
       text: "No podrás revertir esto.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
+    }).then(async (res) => {
+      if (!res.isConfirmed) return;
+
+      try {
+        const response = await deleteClient(client);
+        if (response.data.ok) {
+          Swal.fire("Eliminado", response.data.data, "success");
+          loadClients();
+        } else {
+          Swal.fire("Error", response.data.mensaje, "error");
+        }
+      } catch {
+        Swal.fire("Error", "No se pudo eliminar el cliente", "error");
+      }
     });
+  };
 
-    if (!confirm.isConfirmed) return;
-
+  // 💾 Guardar cliente (crear o editar)
+  const saveClient = async () => {
     try {
-      const response = await deleteClient(client);
+      const isEdit = formData.idCliente > 0;
+
+      const response = isEdit
+        ? await updateClient(formData)
+        : await addClient(formData);
 
       if (response.data.ok) {
-        Swal.fire("Eliminado", response.data.data, "success");
+        Swal.fire("Éxito", response.data.data, "success");
+        setShowModal(false);
         loadClients();
       } else {
         Swal.fire("Error", response.data.mensaje, "error");
       }
-    } catch (error) {
-      Swal.fire("Error", "No se pudo eliminar el cliente", "error");
+    } catch {
+      Swal.fire("Error", "No se pudo guardar el cliente", "error");
     }
   };
 
@@ -126,144 +132,100 @@ const Clients = () => {
         + Nuevo Cliente
       </button>
 
-      {/* Tabla */}
-      <table className="table table-bordered table-hover">
-        <thead className="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Dirección</th>
-            <th>Teléfono</th>
-            <th>Tipo</th>
-            <th>Fecha Registro</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+      {/* 📌 Tabla DevExtreme */}
+      <DataGrid
+        dataSource={clients}
+        keyExpr="idCliente"
+        showBorders={true}
+        columnAutoWidth={true}
+        height={550}
+      >
+        <SearchPanel visible={true} highlightCaseSensitive={true} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
+        <ColumnChooser enabled={true} />
 
-        <tbody>
-          {clients.map((c) => (
-            <tr key={c.idCliente}>
-              <td>{c.idCliente}</td>
-              <td>{c.nombre}</td>
-              <td>{c.direccion}</td>
-              <td>{c.telefono}</td>
-              <td>{c.tipo}</td>
-              <td>{c.fechaRegistro?.split("T")[0]}</td>
-              <td>
-                <button
-                  className="btn btn-warning btn-sm me-2"
-                  onClick={() => openEditModal(c)}
-                >
-                  Editar
-                </button>
+        <Paging defaultPageSize={10} />
 
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDelete(c)}
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <Column dataField="idCliente" caption="ID" width={60} />
+        <Column dataField="nombre" caption="Nombre" />
+        <Column dataField="direccion" caption="Dirección" />
+        <Column dataField="telefono" caption="Teléfono" width={120} />
+        <Column dataField="tipo" caption="Tipo" width={120} />
+        <Column
+          dataField="fechaRegistro"
+          caption="Fecha"
+          customizeText={(e) =>
+            e.value ? e.value.split("T")[0] : "-"
+          }
+        />
 
-      {/* Modal */}
-      {showModal && (
-        <div className="modal fade show d-block" style={{ background: "#00000090" }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content p-4">
+        <Column
+          caption="Acciones"
+          width={180}
+          cellRender={(e) => (
+            <>
+              <button
+                className="btn btn-warning btn-sm me-2"
+                onClick={() => openEditModal(e.data)}
+              >
+                Editar
+              </button>
 
-              <h4 className="mb-3">
-                {formData.idCliente > 0 ? "Editar Cliente" : "Nuevo Cliente"}
-              </h4>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => handleDelete(e.data)}
+              >
+                Eliminar
+              </button>
+            </>
+          )}
+        />
+      </DataGrid>
 
-              <form onSubmit={saveClient}>
-                
-                <div className="row">
-                  <div className="col-md-6 mb-2">
-                    <label>Nombre</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+      {/* 📌 Popup para agregar/editar */}
+      <Popup
+        visible={showModal}
+        onHiding={() => setShowModal(false)}
+        dragEnabled={false}
+        closeOnOutsideClick={true}
+        showTitle={true}
+        title={formData.idCliente > 0 ? "Editar Cliente" : "Nuevo Cliente"}
+        width={600}
+        height="auto"
+      >
+        <Form formData={formData} onFieldDataChanged={(e) => setFormData({ ...formData, [e.dataField]: e.value })}>
+          <Item dataField="nombre">
+            <Label text="Nombre" />
+          </Item>
 
-                  <div className="col-md-6 mb-2">
-                    <label>Teléfono</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="telefono"
-                      value={formData.telefono || ""}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
+          <Item dataField="telefono">
+            <Label text="Teléfono" />
+          </Item>
 
-                <div className="mb-2">
-                  <label>Dirección</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="direccion"
-                    value={formData.direccion || ""}
-                    onChange={handleChange}
-                  />
-                </div>
+          <Item dataField="direccion">
+            <Label text="Dirección" />
+          </Item>
 
-                <div className="row">
-                  <div className="col-md-6 mb-2">
-                    <label>Tipo</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="tipo"
-                      value={formData.tipo || ""}
-                      onChange={handleChange}
-                    />
-                  </div>
+          <Item dataField="tipo">
+            <Label text="Tipo" />
+          </Item>
 
-                  <div className="col-md-6 mb-2">
-                    <label>Fecha Registro</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      name="fechaRegistro"
-                      value={formData.fechaRegistro?.split("T")[0] || ""}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
+          <Item dataField="fechaRegistro" editorType="dxDateBox">
+            <Label text="Fecha Registro" />
+          </Item>
 
-                <div className="mt-3 text-end">
-                  <button
-                    type="button"
-                    className="btn btn-secondary me-2"
-                    onClick={closeModal}
-                  >
-                    Cancelar
-                  </button>
+        </Form>
 
-                  <button type="submit" className="btn btn-success">
-                    Guardar
-                  </button>
-                </div>
-
-              </form>
-
-            </div>
-          </div>
+        <div className="text-end mt-3">
+          <button className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>
+            Cancelar
+          </button>
+          <button className="btn btn-success" onClick={saveClient}>
+            Guardar
+          </button>
         </div>
-      )}
-
+      </Popup>
     </div>
   );
-};
-
-export default Clients;
+}
