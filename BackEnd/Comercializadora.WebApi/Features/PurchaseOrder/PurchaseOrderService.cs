@@ -98,5 +98,40 @@ namespace Comercializadora.WebApi.Features.PurchaseOrders
                     .Fault($"Error: {ex.Message}", "500", new List<PurchaseOrderDto>());
             }
         }
+
+        public async Task<Response<string>> RecivePurcharOrder(RecivePurchaseOrder payload)
+        {
+            try
+            {
+                int idFacturaProveedor = 0;
+
+                var paramId = new SqlParameter("@IdFacturaOut", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC dbo.sp_RecepcionOrdenCompra_ConTransaccion @IdOrdenCompra, @IdFacturaOut OUTPUT",
+                    new SqlParameter("@IdOrdenCompra", payload.IdOrdenCompra),
+                    paramId
+                );
+
+                idFacturaProveedor = (int)paramId.Value;
+
+                return Response<string>.Success(
+                    $"Orden de compra recibida con exito, se creo la factura al proveedor con código: {idFacturaProveedor}",
+                    "200",
+                    ""
+                );
+            }
+            catch (Exception ex)
+            {
+                return Response<string>.Fault(
+                    $"Error al registrar la orden de compra: {ex.Message}",
+                    "500",
+                    ""
+                );
+            }
+        }
     }
 }

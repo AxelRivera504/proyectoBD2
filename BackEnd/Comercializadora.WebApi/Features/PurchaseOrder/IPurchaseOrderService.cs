@@ -7,5 +7,6 @@ namespace Comercializadora.WebApi.Features.PurchaseOrders
     {
         Task<Response<string>> CrearOrdenCompraAsync(PurchaseOrderPayload payload);
         Response<List<PurchaseOrderDto>> ObtenerOrdenesCompra();
+        Task<Response<string>> RecivePurcharOrder(RecivePurchaseOrder payload);
     }
 }

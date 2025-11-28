@@ -29,5 +29,12 @@ namespace Comercializadora.WebApi.Controllers
             var result = await _service.CrearOrdenCompraAsync(payload);
             return Ok(result);
         }
+
+        [HttpPost("RecivePurcharOrder")]
+        public async Task<IActionResult> RecivePurcharOrder(RecivePurchaseOrder payload)
+        {
+            var result = await _service.RecivePurcharOrder(payload);
+            return Ok(result);
+        }
     }
 }

@@ -67,6 +67,15 @@ CREATE TABLE FacturaProveedor(
 );
 GO
 
+CREATE TABLE FacturaProveedorDetalle (
+    IdDetalle INT IDENTITY PRIMARY KEY,
+    IdFactura INT NOT NULL FOREIGN KEY REFERENCES FacturaProveedor(IdFactura),
+    IdProducto INT NOT NULL FOREIGN KEY REFERENCES Producto(IdProducto),
+    Cantidad INT NOT NULL,
+    PrecioCompra DECIMAL(18,2) NOT NULL
+);
+GO
+
 CREATE TABLE PagoProveedor(
     IdPago INT IDENTITY(1,1) PRIMARY KEY,
     Fecha DATETIME DEFAULT GETDATE(),
@@ -87,6 +96,7 @@ CREATE TABLE VentaMayorista(
     IdVenta INT IDENTITY(1,1) PRIMARY KEY,
     IdCliente INT NOT NULL FOREIGN KEY REFERENCES Cliente(IdCliente),
     Fecha DATETIME DEFAULT GETDATE(),
+    Saldo DECIMAL(18,2) NOT NULL DEFAULT 0,
     Total DECIMAL(18,2) NOT NULL,
     Estado NVARCHAR(20) DEFAULT 'Pendiente'
 );
@@ -126,6 +136,15 @@ CREATE TABLE PagoCliente(
 );
 GO
 
+CREATE TABLE PagoClienteDetalle(
+    IdPagoClienteDetalle INT IDENTITY PRIMARY KEY,
+    IdPagoCliente INT NOT NULL FOREIGN KEY REFERENCES PagoCliente(IdPagoCliente) ON DELETE CASCADE,
+    IdVenta INT NOT NULL FOREIGN KEY REFERENCES VentaMayorista(IdVenta),
+    MontoPagado DECIMAL(18,2) NOT NULL
+);
+GO
+
+
 CREATE TABLE Deposito(
     IdDeposito INT IDENTITY(1,1) PRIMARY KEY,
     Fecha DATETIME DEFAULT GETDATE(),
@@ -137,6 +156,7 @@ CREATE TABLE DevolucionProveedor(
     IdDevolucion INT IDENTITY(1,1) PRIMARY KEY,
     IdProveedor INT NOT NULL FOREIGN KEY REFERENCES Proveedor(IdProveedor),
     IdProducto INT NOT NULL FOREIGN KEY REFERENCES Producto(IdProducto),
+    IdFacturaProveedor INT NULL FOREIGN KEY REFERENCES FacturaProveedor(IdFactura);
     Fecha DATETIME DEFAULT GETDATE(),
     Cantidad INT NOT NULL,
     Motivo NVARCHAR(300)

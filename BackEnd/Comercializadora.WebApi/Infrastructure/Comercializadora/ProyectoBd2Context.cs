@@ -1,8 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Comercializadora.WebApi.Features.CreationProduct.Dto;
+using Comercializadora.WebApi.Features.SupplierDevolution.Dto;
 using Comercializadora.WebApi.Infrastructure.Comercializadora.Entities;
+using Comercializadora.WebApi.Infrastructure.Comercializadora.Functions;
 using Comercializadora.WebApi.Infrastructure.Comercializadora.Views;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace Comercializadora.WebApi.Infrastructure.Comercializadora;
 
@@ -29,7 +32,19 @@ public partial class ProyectoBd2Context : DbContext
 
     public virtual DbSet<FacturaProveedor> FacturaProveedors { get; set; }
 
+    public virtual DbSet<FacturaProveedorDetalle> FacturaProveedorDetalles { get; set; }
+
+    public virtual DbSet<ProductoFacturaProveedorSpDto> ProductosFacturaProveedor { get; set; }
+
+    public virtual DbSet<ProveedorConFacturaPendienteDto> ProveedorConFacturaPendientes { get; set; }
+
+    public virtual DbSet<FacturaPendienteDto> FacturaPendientes { get; set; }
+
     public virtual DbSet<InventarioKardex> InventarioKardices { get; set; }
+
+    public virtual DbSet<InsumoDto> InsumosDto { get; set; }
+
+    public virtual DbSet<ProductoFinalDto> ProductosFinalesDto { get; set; }
 
     public virtual DbSet<OrdenCompra> OrdenCompras { get; set; }
 
@@ -53,17 +68,192 @@ public partial class ProyectoBd2Context : DbContext
 
     public virtual DbSet<VentaMayoristum> VentaMayorista { get; set; }
 
-    public virtual DbSet<VwEstadoCuentaCliente> VwEstadoCuentaClientes { get; set; }
+    #region Functions
+    public virtual DbSet<TvfProductosBajoStock> TvfProductosBajoStocks { get; set; }
+    public virtual DbSet<TvfFacturasAbiertasPorProveedor> TvfFacturasAbiertasPorProveedors { get; set; }
+    public virtual DbSet<TvfVentasPendientesPorCliente> TvfVentasPendientesPorClientes { get; set; }
+    public virtual DbSet<TvfPagosProveedorPorPeriodo> TvfPagosProveedorPorPeriodos { get; set; }
+    public virtual DbSet<TvfKardexPorProducto> TvfKardexPorProductos { get; set; }
+    #endregion
 
-    public virtual DbSet<VwKardexUltimosMovimiento> VwKardexUltimosMovimientos { get; set; }
+    #region Views
+    public virtual DbSet<VwRptDevolucionesProveedor> VwRptDevolucionesProveedors { get; set; }
 
-    public virtual DbSet<VwProductosExistencium> VwProductosExistencia { get; set; }
+    public virtual DbSet<VwRptOrdenesCompraDetalle> VwRptOrdenesCompraDetalles { get; set; }
 
-    public virtual DbSet<VwSaldoProveedore> VwSaldoProveedores { get; set; }
+    public virtual DbSet<VwRptOrdenesCompraEncabezado> VwRptOrdenesCompraEncabezados { get; set; }
 
-    public virtual DbSet<VwVentasMayoristasPendiente> VwVentasMayoristasPendientes { get; set; }
+    public virtual DbSet<VwRptProductosMasVendido> VwRptProductosMasVendidos { get; set; }
+
+    public virtual DbSet<VwRptTopClientesVenta> VwRptTopClientesVentas { get; set; }
+
+    public virtual DbSet<VwRptVentasContado> VwRptVentasContados { get; set; }
+
+    public virtual DbSet<VwRptVentasMayoristasDetalle> VwRptVentasMayoristasDetalles { get; set; }
+
+    public virtual DbSet<VwRptVentasMayoristasEncabezado> VwRptVentasMayoristasEncabezados { get; set; }
+    #endregion
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<VwRptDevolucionesProveedor>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_DevolucionesProveedor");
+
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.Motivo).HasMaxLength(300);
+            entity.Property(e => e.Nombre).HasMaxLength(150);
+            entity.Property(e => e.Producto).HasMaxLength(150);
+        });
+
+        modelBuilder.Entity<VwRptOrdenesCompraDetalle>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_OrdenesCompra_Detalle");
+
+            entity.Property(e => e.PrecioUnitario).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Producto).HasMaxLength(150);
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(29, 2)");
+        });
+
+        modelBuilder.Entity<VwRptOrdenesCompraEncabezado>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_OrdenesCompra_Encabezado");
+
+            entity.Property(e => e.Estado).HasMaxLength(20);
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.Nombre).HasMaxLength(150);
+        });
+
+        modelBuilder.Entity<VwRptProductosMasVendido>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_ProductosMasVendidos");
+
+            entity.Property(e => e.MontoGenerado).HasColumnType("decimal(38, 2)");
+            entity.Property(e => e.Nombre).HasMaxLength(150);
+        });
+
+        modelBuilder.Entity<VwRptTopClientesVenta>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_TopClientesVentas");
+
+            entity.Property(e => e.Cliente).HasMaxLength(150);
+            entity.Property(e => e.TotalVendido).HasColumnType("decimal(38, 2)");
+        });
+
+        modelBuilder.Entity<VwRptVentasContado>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_VentasContado");
+
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.PrecioVenta).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Producto).HasMaxLength(150);
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(29, 2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<VwRptVentasMayoristasDetalle>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_VentasMayoristas_Detalle");
+
+            entity.Property(e => e.PrecioUnitario).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Producto).HasMaxLength(150);
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(29, 2)");
+        });
+
+        modelBuilder.Entity<VwRptVentasMayoristasEncabezado>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_RPT_VentasMayoristas_Encabezado");
+
+            entity.Property(e => e.Cliente).HasMaxLength(150);
+            entity.Property(e => e.Estado).HasMaxLength(20);
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.Saldo).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<ProductoFacturaProveedorSpDto>().HasNoKey();
+        modelBuilder.Entity<ProveedorConFacturaPendienteDto>().HasNoKey();
+        modelBuilder.Entity<FacturaPendienteDto>().HasNoKey();
+        modelBuilder.Entity<InsumoDto>().HasNoKey();
+        modelBuilder.Entity<ProductoFinalDto>().HasNoKey();
+        modelBuilder.Entity<TvfProductosBajoStock>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null); // TVF, no tabla
+            entity.Property(e => e.IdProducto).HasColumnName("IdProducto");
+            entity.Property(e => e.Nombre).HasColumnName("Nombre").HasMaxLength(150);
+            entity.Property(e => e.Existencia).HasColumnName("Existencia");
+            entity.Property(e => e.Minimo).HasColumnName("Minimo");
+        });
+
+        modelBuilder.Entity<TvfFacturasAbiertasPorProveedor>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null);
+            entity.Property(e => e.IdFactura).HasColumnName("IdFactura");
+            entity.Property(e => e.Fecha).HasColumnName("Fecha");
+            entity.Property(e => e.Total).HasColumnName("Total");
+            entity.Property(e => e.Saldo).HasColumnName("Saldo");
+        });
+
+        modelBuilder.Entity<TvfVentasPendientesPorCliente>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null);
+            entity.Property(e => e.IdVenta).HasColumnName("IdVenta");
+            entity.Property(e => e.Fecha).HasColumnName("Fecha");
+            entity.Property(e => e.Total).HasColumnName("Total");
+        });
+
+        modelBuilder.Entity<TvfPagosProveedorPorPeriodo>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null);
+            entity.Property(e => e.IdPago).HasColumnName("IdPago");
+            entity.Property(e => e.Fecha).HasColumnName("Fecha");
+            entity.Property(e => e.MontoTotal).HasColumnName("MontoTotal");
+            entity.Property(e => e.TipoPago).HasColumnName("TipoPago").HasMaxLength(20);
+            entity.Property(e => e.IdFactura).HasColumnName("IdFactura");
+            entity.Property(e => e.MontoPagado).HasColumnName("MontoPagado");
+        });
+
+        modelBuilder.Entity<TvfKardexPorProducto>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null);
+            entity.Property(e => e.IdKardex).HasColumnName("IdKardex");
+            entity.Property(e => e.IdProducto).HasColumnName("IdProducto");
+            entity.Property(e => e.Movimiento).HasColumnName("Movimiento").HasMaxLength(100);
+            entity.Property(e => e.Cantidad).HasColumnName("Cantidad");
+            entity.Property(e => e.Saldo).HasColumnName("Saldo");
+            entity.Property(e => e.Observaciones).HasColumnName("Observaciones").HasMaxLength(300);
+            entity.Property(e => e.Fecha).HasColumnName("Fecha");
+        });
+
+        modelBuilder.Entity<FacturaProveedorDetalle>(entity =>
+        {
+            entity.HasKey(e => e.IdDetalle).HasName("PK__FacturaP__E43646A54A154A5A");
+
+            entity.ToTable("FacturaProveedorDetalle");
+
+            entity.Property(e => e.PrecioCompra).HasColumnType("decimal(18, 2)");
+        });
+
         modelBuilder.Entity<Cliente>(entity =>
         {
             entity.HasKey(e => e.IdCliente).HasName("PK__Cliente__D59466427AF3C74B");
@@ -402,69 +592,6 @@ public partial class ProyectoBd2Context : DbContext
                 .HasForeignKey(d => d.IdCliente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__VentaMayo__IdCli__5BE2A6F2");
-        });
-
-        modelBuilder.Entity<VwEstadoCuentaCliente>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_EstadoCuentaClientes");
-
-            entity.Property(e => e.Cliente).HasMaxLength(150);
-            entity.Property(e => e.Estado)
-                .HasMaxLength(9)
-                .IsUnicode(false);
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.SaldoFactura).HasColumnType("decimal(38, 2)");
-            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.TotalPagado).HasColumnType("decimal(38, 2)");
-        });
-
-        modelBuilder.Entity<VwKardexUltimosMovimiento>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_KardexUltimosMovimientos");
-
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.Movimiento).HasMaxLength(50);
-            entity.Property(e => e.Nombre).HasMaxLength(150);
-            entity.Property(e => e.Observaciones).HasMaxLength(300);
-        });
-
-        modelBuilder.Entity<VwProductosExistencium>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_ProductosExistencia");
-
-            entity.Property(e => e.IdProducto).ValueGeneratedOnAdd();
-            entity.Property(e => e.Nombre).HasMaxLength(150);
-            entity.Property(e => e.PrecioVenta).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Tipo).HasMaxLength(50);
-        });
-
-        modelBuilder.Entity<VwSaldoProveedore>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_SaldoProveedores");
-
-            entity.Property(e => e.LimiteCredito).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Nombre).HasMaxLength(150);
-            entity.Property(e => e.SaldoActual).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.TotalFacturasPendientes).HasColumnType("decimal(38, 2)");
-        });
-
-        modelBuilder.Entity<VwVentasMayoristasPendiente>(entity =>
-        {
-            entity
-                .HasNoKey()
-                .ToView("vw_VentasMayoristasPendientes");
-
-            entity.Property(e => e.Cliente).HasMaxLength(150);
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.Total).HasColumnType("decimal(18, 2)");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -1,10 +1,16 @@
 ﻿using Comercializadora.WebApi.Features.Client;
+using Comercializadora.WebApi.Features.CreationProduct;
+using Comercializadora.WebApi.Features.Payments.Clients;
+using Comercializadora.WebApi.Features.Payments.Suppliers;
 using Comercializadora.WebApi.Features.Products;
 using Comercializadora.WebApi.Features.PurchaseOrders;
+using Comercializadora.WebApi.Features.Reports;
 using Comercializadora.WebApi.Features.SalesBilling;
 using Comercializadora.WebApi.Features.Supplier;
+using Comercializadora.WebApi.Features.SupplierDevolution;
 using Comercializadora.WebApi.Infrastructure.Comercializadora;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Comercializadora.WebApi.Common
 {
@@ -25,7 +31,13 @@ namespace Comercializadora.WebApi.Common
                            .AddScoped<IClientService, ClientService>()
                            .AddScoped<ISupplierService, SupplierService>()
                            .AddScoped<ISalesBilling, SalesBilling>()
-                           .AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+                           .AddScoped<IPurchaseOrderService, PurchaseOrderService>()
+                           .AddScoped<IAccountsPayableService, AccountsPayableService>()
+                           .AddScoped<IClientPaymentService, ClientPaymentService>()
+                           .AddScoped<IDevolucionProveedorService, DevolucionProveedorService>()
+                           .AddScoped<IElaboracionService, ElaboracionService>()
+                           .AddScoped<IDashboardService, DashboardService>()
+                           .AddScoped<IReportService, ReportService>();
 
         }
     }

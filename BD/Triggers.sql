@@ -188,18 +188,42 @@ END
 GO
 
 -- 9) PagoCliente -> reducir saldo cliente
-CREATE TRIGGER trg_PagoCliente_AplicaPago
+CREATE TRIGGER trg_PagoCliente_UpdateSaldoCliente
 ON PagoCliente
 AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+
     UPDATE c
     SET c.Saldo = c.Saldo - i.Monto
     FROM Cliente c
     JOIN inserted i ON c.IdCliente = i.IdCliente;
 END
 GO
+
+--Actualizar saldo facturas
+CREATE TRIGGER trg_PagoClienteDetalle_ActualizarVenta
+ON PagoClienteDetalle
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE VM
+    SET 
+        VM.Saldo = VM.Saldo - i.MontoPagado,
+        VM.Estado =
+            CASE 
+                WHEN VM.Saldo - i.MontoPagado <= 0 THEN 'Pagada'
+                WHEN VM.Saldo - i.MontoPagado < VM.Total THEN 'Parcial'
+                ELSE 'Pendiente'
+            END
+    FROM VentaMayorista VM
+    INNER JOIN inserted i ON VM.IdVenta = i.IdVenta;
+END;
+GO
+
 
 -- 10) Evitar existencia negativa al actualizar producto
 CREATE TRIGGER trg_Producto_CheckExistenciaNonNegative

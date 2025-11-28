@@ -5,7 +5,6 @@ const Home = () => {
   return (
     <div className="container">
       <section id="dashboard">
-        <h2 className="section-title">Inicio</h2>
         <Dashboard />
       </section>
     </div>

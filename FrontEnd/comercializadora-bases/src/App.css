@@ -66,3 +66,218 @@
     transform: rotate(360deg);
   }
 }
+
+
+/* ===== DASHBOARD LAYOUT REAL ===== */
+
+.dashboard-wrapper {
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* GRID DE TARJETAS */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* TARJETAS BONITAS */
+.stat-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  border: 1px solid #e9e9e9;
+  box-shadow: 0px 3px 10px rgba(0,0,0,0.06);
+  transition: .2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 6px 16px rgba(0,0,0,0.12);
+}
+
+.stat-icon {
+  font-size: 38px;
+  margin-bottom: 8px;
+}
+
+.stat-title {
+  font-size: 15px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 26px;
+  color: #0078ff;
+  font-weight: bold;
+}
+
+/* CONTENEDORES DE TABLAS */
+.table-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #e6e6e6;
+  box-shadow: 0px 3px 10px rgba(0,0,0,0.05);
+  margin-bottom: 35px;
+}
+
+/* TÍTULOS DE SECCIÓN */
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2b2b2b;
+  margin-bottom: 12px;
+}
+
+/* AJUSTES DEVEXTREME */
+.dx-datagrid .dx-header-row {
+  background-color: #f4f6fa !important;
+  font-weight: bold !important;
+}
+
+.dx-datagrid {
+  border-radius: 12px !important;
+}
+
+
+/* ================================
+   ESTILOS MEJORADOS PARA REPORTES
+   ================================ */
+
+/* CONTENEDOR GENERAL */
+.reportes-container {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
+/* PANEL LATERAL */
+.sidebar-tabs {
+  width: 230px;
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+}
+
+/* BOTONES DE TABS */
+.sidebar-tabs button {
+  display: block !important;
+  width: 100% !important;
+  text-align: left !important;
+  padding: 12px 15px !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px;
+  font-weight: 600;
+  transition: 0.25s;
+  border: 1px solid #dce3ec;
+}
+
+.sidebar-tabs .btn-light {
+  background: #f7f9fc !important;
+  color: #2b2b2b !important;
+}
+
+.sidebar-tabs .btn-light:hover {
+  background: #eef2f7 !important;
+}
+
+/* TAB ACTIVO */
+.sidebar-tabs .btn-primary {
+  background: #0078ff !important;
+  border-color: #0068da !important;
+  color: white !important;
+  box-shadow: 0px 3px 12px rgba(0, 120, 255, 0.35);
+}
+
+/* CONTENIDO PRINCIPAL */
+.reportes-content {
+  flex-grow: 1;
+  padding: 10px;
+}
+
+/* TARJETAS DE FILTROS */
+.report-filter-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #ebebeb;
+}
+
+/* TITULOS DE SECCIÓN */
+.report-title {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+@import 'devextreme/dist/css/dx.material.blue.light.css';
+
+/* Ajustes visuales del menú */
+.dx-menu-base {
+  border: none !important;
+}
+
+.dx-menu-item {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dx-menu-item .dx-menu-item-content {
+  padding: 10px 18px !important;
+}
+
+.dx-menu-horizontal {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e3e3e3 !important;
+}
+
+.dx-state-hover {
+  background: #f5f7fb !important;
+}
+
+.active-nav {
+  background: #e3eefc !important;
+  border-radius: 6px;
+}
+
+/* ====== BARRA ENTERA (ocupa 100% del ancho) ====== */
+.nav-bar {
+  width: 100%;
+  background-color: #ffffff;    /* Fondo igual al menú */
+  border-bottom: 1px solid #e5e5e5;
+  padding: 4px 0;               /* Un poquito de espacio arriba/abajo */
+}
+
+/* ====== CONTENEDOR PARA CENTRAR EL MENÚ ====== */
+.nav-center {
+  max-width: 1400px;            /* Controla el ancho central (ajústalo si querés) */
+  margin: 0 auto;               /* Esto centra el menú */
+  display: flex;
+  justify-content: center;      /* Las opciones centradas */
+}
+
+/* ====== Ajustar menú DevExtreme dentro del contenedor ====== */
+.nav-center .dx-menu-horizontal {
+  width: 100%;                  /* Opcional: deja que el menú use todo el contenedor */
+  display: flex;
+  justify-content: center;      /* Mantiene items centrados */
+}
+
+/* Opciones extra para hover */
+.dx-menu-item .dx-menu-item-content {
+  padding: 12px 20px !important;
+}
+

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { TabPanel, Item } from "devextreme-react/tab-panel";
 
 import DataGrid, {
   Column,
@@ -17,6 +18,8 @@ import SelectBox from "devextreme-react/select-box";
 import { getPurchaseOrders, createPurchaseOrder } from "../services/PurchaseOrder/purcharse_order_service";
 import { getAllSuppliers } from "../services/Suppliers/supplier_service";
 import { getAllProducts } from "../services/products/product_service";
+import { receivePurchaseOrder } from "../services/PurchaseOrder/receive_purchase_order_service";
+
 
 export default function PurchaseOrders() {
   const [ordenes, setOrdenes] = useState([]);
@@ -31,6 +34,8 @@ export default function PurchaseOrders() {
   const [productoId, setProductoId] = useState(null);
   const [cantidad, setCantidad] = useState("");
   const [precioUnitario, setPrecioUnitario] = useState("");
+   // Tabs
+  const [selectedTab, setSelectedTab] = useState(0);
 
   // ----------------------------------------------------------------
   // CARGA INICIAL
@@ -169,6 +174,34 @@ export default function PurchaseOrders() {
     return <span className={color}>{estado}</span>;
   };
 
+  const handleRecibirOrden = async (idOrdenCompra) => {
+
+  const confirm = await Swal.fire({
+    title: "¿Recibir Orden?",
+    text: "Esto registrará la recepción e ingresará los productos al inventario",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, recibir",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    const res = await receivePurchaseOrder(idOrdenCompra);
+    debugger;
+    if (res.data.ok) {
+      Swal.fire("Éxito", res.data.data, "success");
+      loadOrdenes(); // recargar lista
+    } else {
+      Swal.fire("Error", res.data.data, "error");
+    }
+
+  } catch (err) {
+    Swal.fire("Error", "No se pudo recibir la orden", "error");
+  }
+};
+
   // ----------------------------------------------------------------
   // MASTER DETAIL TEMPLATE
   // ----------------------------------------------------------------
@@ -254,133 +287,207 @@ export default function PurchaseOrders() {
         <Column dataField="total" caption="Total L." width={120} />
 
         <Column
-          caption="Estado"
-          dataField="estado"
-          width={120}
-          cellRender={(e) => <EstadoBadge estado={e.data.estado} />}
+          caption="Acciones"
+          width={150}
+          cellRender={(e) => {
+
+            const orden = e.data;
+
+            if (orden.estado !== "Pendiente") {
+              return <span className="badge bg-success">Recibida</span>;
+            }
+
+            return (
+              <button
+                className="btn btn-success btn-sm"
+                onClick={() => handleRecibirOrden(orden.idOrdenCompra)}
+              >
+                Recibir
+              </button>
+            );
+          }}
         />
+
       </DataGrid>
 
       {/* POPUP CREAR ORDEN */}
       <Popup
         visible={showModal}
-        width={850}
+        width={900}
+        height={650}
         onHiding={() => setShowModal(false)}
         title="Nueva Orden de Compra"
       >
         <div className="p-3">
 
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label>Proveedor</label>
-              <SelectBox
-                items={proveedores}
-                value={idProveedor}
-                displayExpr="nombre"
-                valueExpr="idProveedor"
-                searchEnabled={true}
-                placeholder="Seleccione proveedor"
-                onValueChange={setIdProveedor}
-              />
-            </div>
+          {/* ================================
+              TABS
+          ================================= */}
+          <TabPanel
+            selectedIndex={selectedTab}
+            onSelectionChanged={(e) => {
+              const nextIndex = e.component.option("selectedIndex");
 
-            <div className="col-md-6">
-              <label>Total</label>
-              <input className="form-control" value={totalOrden} disabled />
-            </div>
-          </div>
+              if (nextIndex === 1 && !idProveedor) {
+                Swal.fire(
+                  "Proveedor requerido",
+                  "Seleccione un proveedor antes de continuar.",
+                  "warning"
+                );
+                setSelectedTab(0);
+              } else {
+                setSelectedTab(nextIndex);
+              }
+            }}
+          >
+            {/* =====================================================
+                TAB 1 → ENCABEZADO
+            ======================================================= */}
+            <Item title="Encabezado">
+              <div className="p-2">
 
-          <hr />
+                <label className="fw-bold">Proveedor</label>
+                <SelectBox
+                  items={proveedores}
+                  value={idProveedor}
+                  displayExpr="nombre"
+                  valueExpr="idProveedor"
+                  searchEnabled={true}
+                  placeholder="Seleccione proveedor"
+                  onValueChange={setIdProveedor}
+                  disabled={idProveedor !== ""}  // bloquear tras seleccionar
+                />
 
-          {/* AGREGAR PRODUCTO */}
-          <div className="row mb-3">
+                {idProveedor !== "" && (
+                  <button
+                    className="btn btn-warning mt-3"
+                    onClick={() => setIdProveedor("")}
+                  >
+                    Cambiar proveedor
+                  </button>
+                )}
 
-            <div className="col-md-4">
-              <label>Producto</label>
-              <SelectBox
-                items={productos}
-                displayExpr="nombre"
-                valueExpr="idProducto"
-                value={productoId}
-                searchEnabled={true}
-                placeholder="Seleccione producto"
-                onValueChange={handleSelectProducto}
-              />
-            </div>
+                <div className="alert alert-info mt-4">
+                  Seleccione el proveedor y luego pase a la pestaña “Detalles”.
+                </div>
+              </div>
+            </Item>
 
-            <div className="col-md-3">
-              <label>Cantidad</label>
-              <input
-                type="number"
-                className="form-control"
-                value={cantidad}
-                onChange={(e) => setCantidad(Number(e.target.value))}
-              />
-            </div>
+            {/* =====================================================
+                TAB 2 → DETALLES
+            ======================================================= */}
+            <Item title="Detalles">
+              <div className="p-2">
 
-            <div className="col-md-3">
-              <label>Precio Unitario</label>
-              <input
-                type="number"
-                className="form-control"
-                value={precioUnitario}
-                onChange={(e) => setPrecioUnitario(Number(e.target.value))}
-              />
-            </div>
+                {/* -----------------------------
+                    FORM AGREGAR PRODUCTO
+                ------------------------------ */}
+                <div className="row mb-3">
 
-            <div className="col-md-2 d-flex align-items-end">
-              <button className="btn btn-secondary w-100" onClick={agregarDetalle}>
-                + Agregar
-              </button>
-            </div>
-          </div>
+                  <div className="col-md-4">
+                    <label>Producto</label>
+                    <SelectBox
+                      items={productos}
+                      displayExpr="nombre"
+                      valueExpr="idProducto"
+                      value={productoId}
+                      searchEnabled={true}
+                      placeholder="Seleccione producto"
+                      onValueChange={handleSelectProducto}
+                    />
+                  </div>
 
-          {/* TABLA DE DETALLES */}
-          <table className="table table-bordered text-center mt-3">
-            <thead className="table-dark">
-              <tr>
-                <th>Producto</th>
-                <th>Cant.</th>
-                <th>Precio</th>
-                <th>Subtotal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {detalles.length === 0 ? (
-                <tr><td colSpan="5">Sin productos</td></tr>
-              ) : (
-                detalles.map((d) => (
-                  <tr key={d.idProducto}>
-                    <td>{d.nombre}</td>
-                    <td>{d.cantidadSolicitada}</td>
-                    <td>{d.precioUnitario}</td>
-                    <td>{d.cantidadSolicitada * d.precioUnitario}</td>
-                    <td>
+                  <div className="col-md-3">
+                    <label>Cantidad</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={cantidad}
+                      onChange={(e) => setCantidad(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="col-md-3">
+                    <label>Precio Unitario</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={precioUnitario}
+                      onChange={(e) => setPrecioUnitario(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="col-md-2 d-flex align-items-end">
+                    <button className="btn btn-secondary w-100" onClick={agregarDetalle}>
+                      + Agregar
+                    </button>
+                  </div>
+
+                </div>
+
+                {/* -----------------------------
+                    TABLA DE DETALLES
+                ------------------------------ */}
+                <DataGrid
+                  dataSource={detalles}
+                  keyExpr="idProducto"
+                  showBorders={true}
+                  rowAlternationEnabled={true}
+                  columnAutoWidth={true}
+                  height={260}
+                >
+                  <Column dataField="nombre" caption="Producto" />
+                  <Column dataField="cantidadSolicitada" caption="Cantidad" width={120} />
+                  <Column dataField="precioUnitario" caption="Precio" width={120} />
+
+                  <Column
+                    caption="Subtotal"
+                    width={120}
+                    calculateCellValue={(row) =>
+                      row.cantidadSolicitada * row.precioUnitario
+                    }
+                  />
+
+                  <Column
+                    caption="Quitar"
+                    width={100}
+                    cellRender={(e) => (
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => eliminarDetalle(d.idProducto)}
+                        onClick={() => eliminarDetalle(e.data.idProducto)}
                       >
                         X
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                    )}
+                  />
+                </DataGrid>
 
-          <div className="text-end mt-3">
-            <button className="btn btn-success me-2" onClick={handleGuardar}>
-              Guardar Orden
-            </button>
-            <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-              Cancelar
-            </button>
-          </div>
+                <div className="text-end mt-3 fw-bold fs-5">
+                  Total: L. {totalOrden}
+                </div>
+
+                {/* -----------------------------
+                    BOTÓN GUARDAR
+                ------------------------------ */}
+                <div className="text-end mt-3">
+                  <button className="btn btn-success me-2" onClick={handleGuardar}>
+                    Guardar Orden de Compra
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowModal(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+
+              </div>
+            </Item>
+          </TabPanel>
 
         </div>
       </Popup>
+
     </div>
   );
 }

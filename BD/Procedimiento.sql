@@ -368,7 +368,100 @@ BEGIN
 END;
 GO
 
+CREATE PROCEDURE sp_ProductosPorFacturaProveedor
+(
+    @IdFacturaProveedor INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    SELECT 
+        fpd.IdProducto,
+        p.Nombre,
+        fpd.Cantidad AS CantidadFacturada,
+        fpd.PrecioCompra,
+        (fpd.Cantidad * fpd.PrecioCompra) AS Monto,
+        p.Existencia
+    FROM FacturaProveedorDetalle fpd
+    INNER JOIN Producto p ON p.IdProducto = fpd.IdProducto
+    WHERE fpd.IdFactura = @IdFacturaProveedor;
+END
+GO
+
+
+GO
+
+
+CREATE PROCEDURE sp_ProveedoresConFacturasPendientes
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT DISTINCT 
+        p.IdProveedor,
+        p.Nombre
+    FROM Proveedor p
+    INNER JOIN FacturaProveedor f ON f.IdProveedor = p.IdProveedor
+    WHERE f.Saldo > 0;  -- factura pendiente o parcial
+END
+GO
+
+
+GO
+
+
+CREATE PROCEDURE sp_FacturasPendientesPorProveedor
+(
+    @IdProveedor INT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        IdFactura,
+        Fecha,
+        Total,
+        Saldo,
+        Estado
+    FROM FacturaProveedor
+    WHERE IdProveedor = @IdProveedor
+      AND Saldo > 0;   -- solo facturas pendientes/parciales
+END
+GO
+
+CREATE PROCEDURE sp_Insumos_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        IdProducto,
+        Nombre,
+        Descripcion,
+        Existencia,
+        PrecioCosto
+    FROM Producto
+    WHERE Tipo = 'Materia Prima';
+END
+GO
+
+CREATE PROCEDURE sp_ProductosFinales_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        IdProducto,
+        Nombre,
+        Descripcion,
+        Existencia,
+        PrecioVenta
+    FROM Producto
+    WHERE Tipo = 'Producto';
+END
+GO
 
 
 

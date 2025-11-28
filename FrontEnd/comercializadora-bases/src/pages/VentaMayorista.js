@@ -8,7 +8,7 @@ import DataGrid, {
   FilterRow,
   HeaderFilter,
   ColumnChooser,
-  MasterDetail,            // 👈 IMPORTANTE
+  MasterDetail,
 } from "devextreme-react/data-grid";
 
 import Popup from "devextreme-react/popup";
@@ -21,6 +21,11 @@ import {
 
 import { getClients } from "../services/clients/client_service";
 import { getAllProducts } from "../services/products/product_service";
+
+// 👉 IMPORT NUEVO SERVICIO DE PAGOS
+import {
+  pagarFacturaCliente
+} from "../services/payments/clients/client_payment_service";
 
 export default function VentasMayorista() {
   const [ventas, setVentas] = useState([]);
@@ -37,7 +42,18 @@ export default function VentasMayorista() {
   const [cantidad, setCantidad] = useState("");
   const [precioUnitario, setPrecioUnitario] = useState("");
 
-  // ---------------- Carga de datos ----------------
+  // =====================================================================
+  // PAGOS - NUEVO
+  // =====================================================================
+
+  const [showPago, setShowPago] = useState(false);
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+  const [montoPago, setMontoPago] = useState("");
+  const [tipoPago, setTipoPago] = useState("");
+
+  // =====================================================================
+  // CARGA DE DATOS
+  // =====================================================================
 
   const loadVentas = async () => {
     try {
@@ -72,7 +88,9 @@ export default function VentasMayorista() {
     loadProductos();
   }, []);
 
-  // ---------------- Carrito de detalles ----------------
+  // =====================================================================
+  // CARRITO DE DETALLES (LO TUYO)
+  // =====================================================================
 
   const handleSelectProducto = (id) => {
     setProductoId(id);
@@ -128,7 +146,9 @@ export default function VentasMayorista() {
     0
   );
 
-  // ---------------- Guardar venta mayorista ----------------
+  // =====================================================================
+  // GUARDAR VENTA MAYORISTA (LO TUYO)
+  // =====================================================================
 
   const handleGuardar = async () => {
     if (!idCliente) {
@@ -161,7 +181,9 @@ export default function VentasMayorista() {
     }
   };
 
-  // ---------------- Template de detalle (master-detail) ----------------
+  // =====================================================================
+  // MASTER DETAIL (LO TUYO)
+  // =====================================================================
 
   const detalleTemplate = (detailInfo) => {
     const venta = detailInfo.data;
@@ -190,11 +212,7 @@ export default function VentasMayorista() {
           <Column dataField="idProducto" caption="ID" width={80} />
           <Column dataField="nombreProducto" caption="Producto" />
           <Column dataField="cantidad" caption="Cantidad" width={100} />
-          <Column
-            dataField="precioUnitario"
-            caption="Precio Unit."
-            width={130}
-          />
+          <Column dataField="precioUnitario" caption="Precio Unit." width={130} />
           <Column
             caption="Subtotal"
             width={130}
@@ -207,7 +225,66 @@ export default function VentasMayorista() {
     );
   };
 
-  // ---------------- Render ----------------
+  // =====================================================================
+  // === ★★ COLUMNA NUEVA: PAGAR ★★
+  // =====================================================================
+
+  const renderBotonPago = (e) => {
+    if (e.data.estado === "Pagada")
+      return <span className="badge bg-success">Pagada</span>;
+
+    return (
+      <button
+        className="btn btn-success btn-sm"
+        onClick={() => {
+          setVentaSeleccionada(e.data);
+          setMontoPago("");
+          setTipoPago("");
+          setShowPago(true);
+        }}
+      >
+        Pagar
+      </button>
+    );
+  };
+
+  // =====================================================================
+  // === ★★ POPUP PARA PAGAR VENTA ★★
+  // =====================================================================
+
+  const handlePagar = async () => {
+    if (!montoPago || montoPago <= 0)
+      return Swal.fire("Error", "Monto inválido", "warning");
+
+    if (montoPago > ventaSeleccionada.saldo)
+      return Swal.fire("Error", "No puede pagar más del saldo", "warning");
+
+    if (!tipoPago)
+      return Swal.fire("Error", "Seleccione tipo de pago", "warning");
+
+    const payload = {
+      idCliente: ventaSeleccionada.idCliente,
+      idVenta: ventaSeleccionada.idVenta,
+      montoPagado: Number(montoPago),
+      tipoPago,
+    };
+
+    try {
+      const res = await pagarFacturaCliente(payload);
+
+      if (res.data.ok) {
+        Swal.fire("Éxito", res.data.mensaje, "success");
+        loadVentas();
+        setShowPago(false);
+      }
+    } catch {
+      Swal.fire("Error", "No se pudo registrar el pago", "error");
+    }
+  };
+
+  // =====================================================================
+  // RENDER
+  // =====================================================================
 
   return (
     <div className="container mt-4">
@@ -217,7 +294,6 @@ export default function VentasMayorista() {
         + Nueva Venta Mayorista
       </button>
 
-      {/* GRID PRINCIPAL */}
       <DataGrid
         dataSource={ventas}
         keyExpr="idVenta"
@@ -234,20 +310,76 @@ export default function VentasMayorista() {
 
         <Column dataField="idVenta" caption="ID" width={80} />
         <Column dataField="nombreCliente" caption="Cliente" />
+
         <Column
           dataField="fecha"
           caption="Fecha"
           customizeText={(e) => e.value?.split("T")[0] || "-"}
           width={120}
         />
+
         <Column dataField="total" caption="Total L." width={130} />
         <Column dataField="estado" caption="Estado" width={120} />
 
-        {/* 👇 MasterDetail según la demo de DevExtreme */}
+        {/* ★★ COLUMNA PAGAR ★★ */}
+        <Column
+          caption="Pagar"
+          width={120}
+          cellRender={renderBotonPago}
+        />
+
         <MasterDetail enabled={true} render={detalleTemplate} />
       </DataGrid>
 
-      {/* POPUP DE NUEVA VENTA */}
+      {/* ================================================================= */}
+      {/* POPUP DE PAGO INDIVIDUAL */}
+      {/* ================================================================= */}
+      <Popup
+        visible={showPago}
+        onHiding={() => setShowPago(false)}
+        width={430}
+        height={400}
+        title="Pago de Venta"
+      >
+        <div className="p-3">
+          <h5>Factura #{ventaSeleccionada?.idVenta}</h5>
+          <p><strong>Cliente:</strong> {ventaSeleccionada?.nombreCliente}</p>
+          <p><strong>Saldo:</strong> L. {ventaSeleccionada?.saldo}</p>
+
+          <label>Monto a pagar</label>
+          <input
+            type="number"
+            className="form-control mb-2"
+            value={montoPago}
+            onChange={(e) => setMontoPago(e.target.value)}
+          />
+
+          <label>Tipo de pago</label>
+          <select
+            className="form-control"
+            value={tipoPago}
+            onChange={(e) => setTipoPago(e.target.value)}
+          >
+            <option value="">Seleccione</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+
+          <button
+            className="btn btn-success w-100 mt-3"
+            onClick={handlePagar}
+          >
+            Registrar Pago
+          </button>
+        </div>
+      </Popup>
+
+      {/* ================================================================= */}
+      {/* POPUP DE NUEVA VENTA (LO TUYO IGUALITO) */}
+      {/* ================================================================= */}
+
       <Popup
         visible={showModal}
         onHiding={() => setShowModal(false)}
@@ -256,7 +388,7 @@ export default function VentasMayorista() {
         title="Registrar Venta Mayorista"
       >
         <div className="p-3">
-          {/* Cliente */}
+          {/* cliente */}
           <div className="row mb-3">
             <div className="col-md-6">
               <label>Cliente</label>
@@ -279,7 +411,7 @@ export default function VentasMayorista() {
 
           <hr />
 
-          {/* Agregar producto */}
+          {/* productos */}
           <div className="row mb-3">
             <div className="col-md-4">
               <label>Producto</label>
@@ -321,7 +453,7 @@ export default function VentasMayorista() {
             </div>
           </div>
 
-          {/* Tabla de detalles (carrito) */}
+          {/* tabla */}
           <table className="table table-bordered text-center mt-3">
             <thead className="table-dark">
               <tr>
@@ -358,7 +490,7 @@ export default function VentasMayorista() {
             </tbody>
           </table>
 
-          {/* Botones */}
+          {/* botones */}
           <div className="text-end mt-3">
             <button className="btn btn-success me-2" onClick={handleGuardar}>
               Guardar Venta
